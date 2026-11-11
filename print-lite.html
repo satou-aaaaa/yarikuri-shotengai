@@ -66,7 +66,7 @@ th{font-weight:700}
 .mark.b{color:var(--b);border:0.8mm dashed var(--b)}
 .loans{grid-template-columns:repeat(3,58mm);grid-auto-rows:26mm}
 .loan .nm{font-size:11pt}
-/* 切る数の少ない版：店札の上と下のふちに ● と ◆。自分の印が手前になるように置く（印の札は使わない） */
+/* 切る数の少ない版：店札の上と下のふちに ● と ◆。盤の下側（● の人の側）に来た印が持ち主（印の札は使わない） */
 .own{position:absolute;left:0;right:0;height:4.2mm;display:flex;align-items:center;justify-content:center;font-size:7pt;font-weight:900;letter-spacing:.2em}
 .own.a{bottom:0;color:var(--a);border-top:0.4mm solid var(--a)}
 .own.b{top:0;color:var(--b);border-bottom:0.4mm dashed var(--b);transform:rotate(180deg)}
@@ -121,7 +121,7 @@ pages.push(`<section class="page" aria-label="説明書">
   <h3>1日のながれ</h3>
   <ol>
     <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
-    <li><b>取る</b>：先の人から1人1枚ずつ、店札を取って値段を「買う」に書き、盤の空き地に置きます。<b>自分の印（● か ◆）が手前になる向き</b>に置くと、自分の店です。取らずに「店番」をして1💰もらってもかまいません。</li>
+    <li><b>取る</b>：先の人から1人1枚ずつ、店札を取って値段を「買う」に書き、盤の空き地に置きます。<b>自分の印（● か ◆）を盤の下側（● の人の側）に向けて</b>置きます。盤の下側（● の人の側）のふちにある印が、その店の持ち主です。取らずに「店番」をして1💰もらってもかまいません。</li>
     <li><b>のこり</b>：だれも取らなかった店札は箱にもどします。</li>
     <li><b>客を数える</b>：自分の店それぞれの客を数え、合計を「客」に書きます。</li>
     <li><b>利息</b>：借りている数×1💰を「利息」に書き、「のこり」を計算して書きます。</li>
@@ -150,15 +150,15 @@ pages.push(`<section class="page" aria-label="盤">
   <h2>盤（通り）</h2>
   <p class="street">◆ の人はこちら</p>
   <div class="board">${Array.from({ length: 25 }, (_, i) => `<div>${String.fromCharCode(65 + (i % 5))}${1 + Math.floor(i / 5)}</div>`).join("")}</div>
-  <p class="street">● の人はこちら</p>
-  <p style="text-align:center;font-size:9pt;color:var(--sub)">店札はマスに1枚。自分の印が手前になる向きに置く。となりは上下左右（ななめは数えません）。</p>
+  <p class="street">● の人はこちら（店札は、持ち主の印をこちらに向けて置く）</p>
+  <p style="text-align:center;font-size:9pt;color:var(--sub)">店札はマスに1枚。持ち主の印を下側（● の人の側）に向けて置く。となりは上下左右（ななめは数えません）。</p>
   ${foot(2)}
 </section>`);
 // 3. 店札（上と下のふちに印。印の札は使わない）
 pages.push(`<section class="page" aria-label="店札">
   <h2>店札（${Y.KINDS.length}種類×${Y.PER_KIND}枚）</h2>
   <div class="grid tiles">${Y.KINDS.flatMap((k) => Array.from({ length: Y.PER_KIND }, () => `<div class="t tile lite"><span class="own b">◆</span><span class="cost">${S[k].c}💰</span><span class="base">客${S[k].base}</span><span class="e">${S[k].e}</span><span class="nm">${S[k].nm}</span><span class="x">${S[k].txt}</span><span class="own a">●</span></div>`)).join("")}</div>
-  <p style="font-size:8.5pt;color:var(--sub)">上と下のふちに ● と ◆ があります。自分の印が手前になる向きに置きます。</p>
+  <p style="font-size:8.5pt;color:var(--sub)">上と下のふちに ● と ◆ があります。盤の下側（● の人の側）のふちにある印が、その店の持ち主です。◆ の人の店は、● の人から見て逆さまになります。</p>
   ${foot(3)}
 </section>`);
 // 4. 記録表（お金は鉛筆で書く）
