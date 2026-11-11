@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   qa:
-    uses: satou-aaaaa/shared-workflows/.github/workflows/game-qa.yml@main
+    uses: satou-aaaaa/shared-workflows/.github/workflows/game-qa.yml@claude/project-thread-i7apk8
     # with:
     #   npm_dir: qa              # package-lock.json のあるフォルダ
     #   command: node qa/run.mjs
