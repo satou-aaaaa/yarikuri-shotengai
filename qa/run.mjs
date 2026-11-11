@@ -245,6 +245,9 @@ try {
     check("印刷：説明書・盤・店札・お金・印と記録表の5枚で、どの紙からもはみ出さない", pages.length === 5 && pages.every((x) => x[0]), JSON.stringify(pages));
     check("印刷：店札は30枚・盤は25マスで、店札（34mm）が盤のマス（36mm）に乗る", tiles === 30 && cells === 25 && Math.abs(sz[0] - 34) < 0.5 && Math.abs(sz[1] - 36) < 0.5, sz.map((v) => v.toFixed(1)).join("/"));
     check("印刷：説明書の店の値段・客は rules.js と同じ", Y.KINDS.every((k) => print.includes("rules.js")) && await p.evaluate(() => YRK.KINDS.every((k) => document.body.textContent.includes(`${YRK.SHOPS[k].nm} ${YRK.SHOPS[k].c}💰・客${YRK.SHOPS[k].base}`))));
+    check("印刷：説明書に奥付（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）がある", await p.evaluate(() => { const c = document.querySelector('.page[aria-label="説明書"] .colophon'); const t = c ? c.textContent : ""; return /対象年齢 \d+歳以上/.test(t) && t.includes("3歳未満") && t.includes("小さな部品") && t.includes("連絡先：https://") && t.includes("Noto Color Emoji"); }));
+    { const sub = decodeURIComponent((print.match(/family=Noto\+Color\+Emoji&text=([^&"]+)/) || [])[1] || ""); const used = await p.evaluate(() => [...new Set((document.getElementById("sheets").textContent.match(/\p{Extended_Pictographic}/gu) || []))]);
+      check("印刷：使う絵文字はすべて Noto Color Emoji の読み込み（text=）に入っている（端末の絵文字にならない）", used.length > 0 && used.every((e) => sub.includes(e)), used.filter((e) => !sub.includes(e)).join("") || used.join("")); }
     await p.emulateMedia({ media: "print" });
     const pdf = await p.pdf({ format: "A4", preferCSSPageSize: true, printBackground: true });
     const n = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
