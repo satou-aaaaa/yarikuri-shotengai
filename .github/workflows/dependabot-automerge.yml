@@ -1,0 +1,13 @@
+name: Dependabot auto-merge
+
+# Dependabot の patch/minor 更新の自動マージを予約する（必須チェックが通ったら GitHub がマージ）。
+# 中身は共通部品 satou-aaaaa/shared-workflows。リポジトリ設定で「Allow auto-merge」と必須チェックが要る。
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    uses: satou-aaaaa/shared-workflows/.github/workflows/dependabot-automerge.yml@main

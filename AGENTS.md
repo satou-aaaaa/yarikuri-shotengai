@@ -1,0 +1,44 @@
+# AGENTS.md
+
+やりくり商店街：5×5の通りにお店を並べて客を呼ぶ、2人対戦のボードゲーム（1台を2人で回す・となりの店主と1人で）。`index.html`（画面）・`rules.js`（きまりと店主の手）・`print.html`（紙で遊ぶ A4 5枚）を GitHub Pages で公開する。
+
+## 準備（最初に一度）
+
+```bash
+bash scripts/setup.sh   # Node.js（版は .nvmrc）を確かめ、検査の依存とブラウザを入れる。何度実行してもよい
+```
+
+## push する前の確認
+
+```bash
+node qa/run.mjs   # きまり（1000局・3年分の今日の盤・作り直し・先手後手の差）・2人対戦と1人用を通しで・続きから・古いタブ・今日の盤は1日1回・あとから・実績・遊び方・保存の帯・印刷の5枚・幅320px・PWA・引き継ぎ・見やすさ（CI の QA と同じ）
+```
+
+## このリポジトリの決まり
+
+- きまりは `rules.js` の1か所だけに書き、画面・印刷・QA が同じものを読む。説明書（`print.html`・遊び方）の数字は `SHOPS` から作る（手で書かない）。
+- ゲームは「種＋手の並び（`runs.*.moves`）」だけで決まる。店主の手（`aiMove`）も乱数を使わない。手を打つ前に、保存した途中経過が画面と同じ回・同じ手数かを確かめる（`act`。古いタブで二重に進めない）。
+- 今日の盤（店札の順）は日本時間の日付の種（`seedOfDate`）で決まり、だれでも同じ。1人用で1日1回。`SHOPS`・`KINDS`・`PER_KIND`・`deckOf` を変えると過去の日の盤が変わる。QA の `PIN` が第1回（2026-11-11）の並びを見る。`rules.js` を変える PR は自動ではマージされない（`hold_paths`）。
+- 店の値段・客の数・店主の強さを変えたら、QA の1000局（先手後手が40〜60%・借りることに意味がある・やさしい店主は目の前の得だけの遊び方と五分）が通るか確かめる。
+- 好きなだけ遊べる：2人対戦・練習は何回でも。チケット・回数制限・🔒で開くモードを入れない。
+- 記録 `yrk-v1`：`runs`（`d` 今日の盤・`a` あとから・`p` 練習・`v` 2人対戦）・`days`・`adays`・`st`（数）・`ach`・`kofi`・`done`（終えた回の id）。保存の前に読み直す。保存できないあいだは帯 `#savewarn`。あとからは連続・今日の記録・Ko-fi に数えない。
+- 「深さ」の共通部品（`depth.js`：自信・復習）は入れない。答えを選ぶ問題ではなく、1手ごとの判断（置き場所・取り合い・借りる時期）がゲームそのもののため。
+- 色だけで分けない：1P/あなたは ● と実線の枠、2P/店主は ◆ と破線の枠。増え方は「+」「相手−」の文字。
+- 応援は Ko-fi（https://ko-fi.com/satouaaaaa）へのただのリンクだけ。今日の盤で初めて勝ったときだけ結果の下に1行。
+- 外へ通信しない。外から読むのは Google Fonts の文字だけ（CSP の `connect-src 'self'` を広げない）。オンライン対戦は入れない。
+- 既存のボードゲームの名前・絵・説明書の文・数値を写さない（調べた要点はプロジェクトの共有フォルダ `games/yarikuri-research.md`）。
+- 見やすさ：`</head>` の前の見やすさの設定は shared-workflows `template/a11y/a11y.html` の写し、`qa/a11y.mjs`・`transfer.js`・`qa/transfer-check.mjs`・`qa/sw-check.mjs` も `template/` の写しで、ここでは直さない。
+- 少し遅れて動く処理（setTimeout）は、画面が替わっていたら何もしない。機能を足す・直すたびに `qa/run.mjs` に検査を足す。
+- PWA：画面のファイルを足したら `sw.js` の `SHELL` にも足し、中身を大きく変えたら `CACHE` の版を上げる。アイコンは `node tools/make-icons.cjs`、SNS 用の絵は `node tools/make-og.cjs`。
+- 公開リポジトリなので、個人情報・鍵を入れない。
+
+## 公開
+
+- GitHub Pages は `main` のルート（`/`）を公開する。PR の QA と Secret scan が ✅ になると `automerge.yml` が自動でマージする。止めたいときは下書きにするか、ラベル「自動マージしない」を付ける。
+- `sw.js`・`manifest.webmanifest`・`rules.js` を変える PR は自動ではマージされない（`hold_paths`）。CodeRabbit のレビューを待ち、手でマージする直前に今の head へのレビューを読み直す。CodeRabbit は PR に `@coderabbitai review` とコメントして頼む。
+
+## 共通のきまり
+
+- PR の作り方・マージの仕方は satou-aaaaa/shared-workflows の `routines/pr.md`、全体のきまりは `routines/common.md` に従う。
+- CI の部品は shared-workflows の共通部品を呼ぶ。リポジトリ側の .github/workflows には呼び出しと設定値だけを書く。
+- Claude 以外の AI・人が作業するときは、shared-workflows の `routines/tool-map.md` と `routines/without-claude.md` を読む。

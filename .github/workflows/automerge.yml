@@ -1,0 +1,40 @@
+name: Auto merge
+
+# 検査（QA）がプルリクエストで ✅ になったら自動で squash マージする。中身と条件は共通部品 satou-aaaaa/shared-workflows。
+# QA・Setup check のどちらが後に終わっても判定し直す（先に終わった方の回は、もう片方を待って止まり、後から再実行されないため。2026-10-31）。
+# Secret scan を入れたリポジトリは workflows に Secret scan、require_checks に scan / scan を足す。
+on:
+  workflow_run:
+    # Setup check（準備のファイルを変えた PR だけで動く）が終わったときにも判定し直す。Secret scan を入れたら [QA, Setup check, Secret scan]
+    workflows: [QA, Setup check]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  pages: write
+  checks: read     # require_checks で同じコミットの検査の結果を読む
+  actions: write   # dispatch: と recheck_main（既定 true）でワークフローを起こすのに要る（無いと 403。2026-10-21）
+
+jobs:
+  merge:
+    uses: satou-aaaaa/shared-workflows/.github/workflows/automerge.yml@main
+    with:
+      # Pages を「ブランチから公開」にしているときは true。Actions で公開しているときは dispatch: "pages.yml"
+      pages_build: true
+      delete_branch: true
+      # 同じコミットで ✅ が要る検査（改行区切り）。きっかけが Setup check のときも QA が通っていなければマージしない
+      # Secret scan を入れたリポジトリは "scan / scan" も足す
+      require_checks: |
+        qa / qa
+        scan / scan
+      # PWA の仕組み・きまり（rules.js。今日の盤が変わる）を変える PR は自動ではマージせず、CodeRabbit のレビューを読んでから手でマージ
+      hold_paths: '^(sw\.js|manifest\.webmanifest|rules\.js)$'
+      # 動いたときだけ成功を待つ検査。準備のファイルを変えた PR は Setup check が通るまでマージしない（2026-11-07 atsusa-shisu #1・#252 の CodeRabbit）
+      present_checks: |
+        setup / setup
+      # きっかけが Setup check（や Secret scan）のとき recheck_main はそのワークフローを起こすので、false にして main では QA と Setup check を起こす
+      # （GITHUB_TOKEN のマージでは main の push で動かないため。Setup check を起こさないと、月1の失敗の Issue が次の月まで閉じない。#252 の CodeRabbit）
+      recheck_main: false
+      # Link check も起こす（GITHUB_TOKEN のマージでは main の push で動かず、直したリンクが次の週まで赤のまま。版11の CodeRabbit）
+      dispatch: qa.yml setup-check.yml link-check.yml
