@@ -175,6 +175,9 @@ const watch = (p) => { p.on("pageerror", (e) => errors.push(String(e))); return 
 const fresh = async (ctx, at) => { const p = watch(await ctx.newPage()); if (at) await p.clock.setFixedTime(new Date(at)); await p.goto(url); await p.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 1, tut: true })); }, KEY); await p.reload(); return p; };
 // 上級では大通りの値段が高く、選べる札でも置ける所が無いことがある。そのときは選びなおさず店番
 const step1 = async (p) => { const c = await p.$(".card[data-m]:not([disabled])"); if (c) { await c.click(); const cell = await p.$(".cell.can[data-i]"); if (cell) return cell.click(); } await p.click("#pass"); };
+// 人が買える札が出るまで店番で進める（2人対戦・練習は種が毎回ちがい、はじめの3枚が全部4💰より高いことがある。
+// 2026-11-11 PR #4 の CI で「2人対戦を通しで遊ぶ」の札を押す所が時間切れになった）
+const toPick = async (p) => { for (let k = 0; k < 40; k++) { if (await p.$(".card[data-m]:not([disabled])")) return true; if (await p.$("#pass:not([disabled])")) await p.click("#pass"); else await p.waitForTimeout(120); } return false; };
 // 人の番を、置ける店札のうち最初の1枚を最初の空き地に置いて進める（店主の番は待つ）
 // 店主の番を待つ回は数えない（遅い CI で回数が尽きないように）。人の手を limit 回か、120秒で止める
 const playOut = async (p, limit = 400) => {
@@ -203,7 +206,7 @@ try {
   // 2人対戦を通しで遊ぶ
   { const p = await fresh(ctx); await p.click("#go-v");
     const two = await p.evaluate(() => [...document.querySelectorAll(".who b")].map((b) => b.textContent).join("|"));
-    await p.click(".card[data-m]:not([disabled])");
+    await toPick(p); await p.click(".card[data-m]:not([disabled])");
     const pv = await p.$$eval(".cell.can .pv", (a) => a.length);
     await p.click(".cell.can");
     const done = await playOut(p);
@@ -310,7 +313,7 @@ try {
   // スマホ幅・押せる大きさ・色だけで分けない
   { const c2 = await browser.newContext({ viewport: { width: 320, height: 700 } }); const p = await fresh(c2);
     const homeW = await p.evaluate(() => document.documentElement.scrollWidth);
-    await p.click("#go-v"); await p.click(".card[data-m]:not([disabled])");
+    await p.click("#go-v"); await toPick(p); await p.click(".card[data-m]:not([disabled])");
     const gameW = await p.evaluate(() => document.documentElement.scrollWidth);
     const small = await p.$$eval("button:not(.gone), a", (bs) => bs.filter((b) => b.offsetParent && b.getBoundingClientRect().height < 44).map((b) => b.textContent.trim().slice(0, 10)));
     await p.click(".cell.can");
