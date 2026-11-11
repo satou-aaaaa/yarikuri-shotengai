@@ -136,6 +136,15 @@ const print = readFileSync(path.join(root, "print.html"), "utf8");
   check("外から読むのは文字（Google Fonts）だけ。スクリプト・広告・解析を入れない", ext.length === 0, ext.join(","));
   check("CSP で通信先を自分だけにしている（画面・印刷とも）", [html, print].every((h) => /connect-src 'self'/.test(h) && !/connect-src[^;"]*https/.test(h)));
   check("Math.random は練習・2人対戦の種と回の id だけ（今日の盤・あとからは日付の種）", (html.match(/Math\.random/g) || []).length === 2 && !/Math\.random/.test(readFileSync(path.join(root, "rules.js"), "utf8")));
+  {
+    // 説明書（印刷・画面）の細かいところが rules.js の計算と同じか（2026-11-11 CodeRabbit #4：住宅・2倍の順・同点・マイナス）
+    const B = Array(Y.N * Y.N).fill(null), m = Y.MAIN[0]; B[m] = { t: "ie", o: "a" }; B[0] = { t: "yasai", o: "a", up: true };
+    const twice = (Y.SHOPS.yasai.base + Y.UP_ADD) * 2, ex = `（1＋${Y.UP_ADD}）×2＝${(1 + Y.UP_ADD) * 2}人`;
+    check("上級：大通りの住宅は値段だけ +1・客は0（説明書と画面の文も同じ）", Y.cust(B, m, true) === 0 && Y.costAt("ie", m, true) === Y.SHOPS.ie.c + 1 && print.includes("🏠住宅は値段だけ +1。客は0のまま") && html.includes("住宅は値段だけ"));
+    check("上級：2倍の行事は2階の分を足してから2倍（説明書の例も同じ計算）", Y.custEv(B, 0, "sale") === twice && print.includes("2階の分を足してから2倍") && print.includes("${(1 + Y.UP_ADD) * 2}人") && html.includes("足してから2倍"), ex);
+    check("上級：同点のときは行事の札を入れない客で比べる（説明書と画面に書く）", /function winner[^}]*income\(g\.board, "a", g\.adv\)/.test(readFileSync(path.join(root, "rules.js"), "utf8")) && print.includes("行事の札は入れずに数える") && html.includes("行事の札は入れない"));
+    check("上級：お金が足りないときはマイナスのまま続く（説明書に書く）", print.includes("マイナスのまま続けます"));
+  }
   check("チケット・回数制限・🔒で開くモードを入れない", !/🎫|チケット|ライフ|スタミナ|で開く|解放/.test(html));
   check("画面にお笑いの言葉を入れない", !/お笑い|ギャグ|ボケ|ツッコミ|なんでやねん/.test(html + print));
   check("Ko-fi は結果の画面の1行（今日の盤で初めて勝ったとき）と下のリンクだけ", /const KOFI = "https:\/\/ko-fi\.com\/satouaaaaa";/.test(html) && /showKofi = MODE === "d" && w === "a" && !s\.kofi\[RUN\.date\]/.test(html));
