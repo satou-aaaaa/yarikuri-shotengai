@@ -296,7 +296,9 @@ try {
     const m1 = await p.evaluate(() => __yk.RUN.moves.length); await p.waitForTimeout(1500);
     check("日のおわりを出しているあいだは、だれも動けない（「次の日へ」で進む）", (await p.evaluate(() => __yk.RUN.moves.length)) === m1 && !(await p.$(".card[data-m]:not([disabled])")) && !!(await p.$("#pass[disabled]")));
     await p.click("#nextday");
-    check("「次の日へ」で2日目の朝のせりになる", await p.evaluate(() => __yk.G.day === 2 && __yk.G.phase === "bid" && !!document.getElementById("bid-go")));
+    // 押したあとの描きかえを待ってから見る（すぐ見ると、遅い端末でまれに前の画面を読む）
+    const nd = await p.waitForFunction(() => __yk.G.day === 2 && __yk.G.phase === "bid" && !!document.getElementById("bid-go"), null, { timeout: 5000 }).then(() => true, () => false);
+    check("「次の日へ」で2日目の朝のせりになる", nd, await p.evaluate(() => JSON.stringify({ day: __yk.G.day, ph: __yk.G.phase, turn: __yk.G.turn })));
     await p.close(); }
   // 朝のせり（2人）：1Pの額は2Pに見せず、渡す画面をはさむ
   { const p = await fresh(ctx); await p.click("#go-v");
@@ -429,6 +431,8 @@ try {
     check("どちらの店かは色だけでなく ●◆ の印と、実線・破線の枠でも分かる", /[●◆]/.test(marks) && (await p.$$eval(".who.b", (a) => getComputedStyle(a[0]).borderLeftStyle === "dashed")));
     await c2.close(); }
 
+  // 説明書は文字の形（端末の字・CI の字）で数mm伸びる。手元でぎりぎり入っても CI ではみ出したので、5mm 以上の空きを見る（2026-11-11 #6）
+  const slackMm = (p) => p.evaluate(async () => { await document.fonts.ready; const e = document.querySelector('.page[aria-label="説明書"]'); const h = e.clientHeight, st = e.getAttribute("style"); e.style.height = "auto"; e.style.minHeight = "0"; e.style.maxHeight = "none"; const n = e.scrollHeight; if (st === null) e.removeAttribute("style"); else e.setAttribute("style", st); return ((h - n) * 25.4) / 96; });
   STEP = "印刷の7枚";
   // 印刷の7枚
   { const p = watch(await ctx.newPage()); await p.goto(printUrl); await p.waitForTimeout(300);
@@ -436,6 +440,7 @@ try {
     const tiles = await p.$$eval(".tile", (a) => a.length), cells = await p.$$eval(".board > div", (a) => a.length);
     const sz = await p.evaluate(() => { const mm = (px) => (px * 25.4) / 96; const t = document.querySelector(".tile").getBoundingClientRect(), c = document.querySelector(".board > div").getBoundingClientRect(); return [mm(t.width), mm(c.width)]; });
     check("印刷：説明書・盤・店札・お金・印と客メーター・上級ルール・行事と目標の札の7枚で、どの紙からもはみ出さない", pages.length === 7 && pages.every((x) => x[0]), JSON.stringify(pages));
+    { const mm = await slackMm(p); check("印刷：説明書の下に5mm以上の空きがある（字の形がちがう端末でもはみ出さない）", mm >= 5, `${mm.toFixed(1)}mm`); }
     check("印刷：行事の札12枚・目標の札8枚・2Fの札12枚・盤の大通り5マスで、文は rules.js と同じ", await p.evaluate(() => { const t = document.body.textContent; return document.querySelectorAll(".card:not(.goal)").length === 12 && document.querySelectorAll(".card.goal").length === 8 && document.querySelectorAll(".mark.up").length === 12 && document.querySelectorAll(".board .ave").length === 5 && YRK.EV_KEYS.every((k) => t.includes(YRK.EVENTS[k].txt)) && YRK.GOAL_KEYS.every((k) => t.includes(YRK.GOALS[k].txt) && t.includes(`${YRK.GOALS[k].pt}点`)) && [...document.querySelectorAll(".foot span:last-child")].every((e, i) => e.textContent === `${i + 1} / 7`); }));
     check("印刷：店札は30枚・盤は25マスで、店札（34mm）が盤のマス（36mm）に乗る", tiles === 30 && cells === 25 && Math.abs(sz[0] - 34) < 0.5 && Math.abs(sz[1] - 36) < 0.5, sz.map((v) => v.toFixed(1)).join("/"));
     check("印刷：説明書の店の値段・客は rules.js と同じ", Y.KINDS.every((k) => print.includes("rules.js")) && await p.evaluate(() => YRK.KINDS.every((k) => document.body.textContent.includes(`${YRK.SHOPS[k].nm} ${YRK.SHOPS[k].c}💰・客${YRK.SHOPS[k].base}`))));
@@ -451,6 +456,7 @@ try {
   { const p = watch(await ctx.newPage()); await p.goto(liteUrl); await p.waitForTimeout(300);
     const pages = await p.$$eval(".page", (a) => a.map((e) => [e.scrollHeight <= e.clientHeight + 1, e.getAttribute("aria-label")]));
     check("少ない版：説明書・盤・店札・記録表の4枚で、どの紙からもはみ出さない", pages.length === 4 && pages.every((x) => x[0]), JSON.stringify(pages));
+    { const mm = await slackMm(p); check("少ない版：説明書の下に5mm以上の空きがある（字の形がちがう端末でもはみ出さない）", mm >= 5, `${mm.toFixed(1)}mm`); }
     check("少ない版：切る札は店札30枚だけ（お金・印・借り札の札が無い）で、どの店札にも ● と ◆ のふちがある", await p.evaluate(() => document.querySelectorAll(".t").length === 30 && [...document.querySelectorAll(".tile")].every((t) => t.querySelector(".own.a")?.textContent === "●" && t.querySelector(".own.b")?.textContent === "◆")));
     const sz = await p.evaluate(() => { const mm = (px) => (px * 25.4) / 96; return [mm(document.querySelector(".tile").getBoundingClientRect().width), mm(document.querySelector(".board > div").getBoundingClientRect().width)]; });
     check("少ない版：店札（34mm）が盤のマス（36mm）に乗る", Math.abs(sz[0] - 34) < 0.5 && Math.abs(sz[1] - 36) < 0.5, sz.map((v) => v.toFixed(1)).join("/"));

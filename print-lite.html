@@ -36,6 +36,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1
 .colophon b{color:var(--ink)}
 .foot{margin-top:auto;font-size:8pt;color:var(--sub);display:flex;justify-content:space-between}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+.two.flow{display:block;columns:2;column-gap:5mm}.two.flow>div{display:contents}.two.flow h3{break-after:avoid}.two.flow li,.two.flow p{break-inside:avoid}
 .ref{border:0.4mm solid var(--ink);border-radius:3mm;padding:3mm;display:grid;gap:1.2mm;font-size:9pt}
 .ref div{display:grid;grid-template-columns:7mm 1fr;gap:1mm}
 table{border-collapse:collapse;width:100%;font-size:9pt}
@@ -111,7 +112,7 @@ const pages = [];
 pages.push(`<section class="page" aria-label="説明書">
   <h2>やりくり商店街　説明書</h2>
   <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、${Y.DAYS}日目のおわりにお金と陣取りの点が多いほうの勝ちです。お金は記録表に鉛筆で書きます。</p>
-  <div class="two"><div>
+  <div class="two flow"><div>
   <h3>じゅんび</h3>
   <ol>
     <li>盤をまん中に置き、●の人は「5」の列の側、◆の人は「1」の列の側にすわります。</li>
@@ -123,8 +124,7 @@ pages.push(`<section class="page" aria-label="説明書">
   <ol>
     <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
     <li><b>朝のせり</b>：出す額をこっそり書いて同時に見せ、多いほうが先に取り、その額を「せり」に書きます（少ないほうは払わない）。同じなら、どちらも払わず優先札の人が先。そのあと優先札を相手へ。</li>
-    <li><b>取る</b>：先の人から1人1枚ずつ、店札を取って値段を「買う」に書き、盤の空き地に置きます。<b>自分の印（● か ◆）を盤の下側（● の人の側）に向けて</b>置きます。盤の下側（● の人の側）のふちにある印が、その店の持ち主です。取らずに「店番」をして1💰もらってもかまいません。</li>
-    <li><b>のこり</b>：だれも取らなかった店札は箱にもどします。</li>
+    <li><b>取る</b>：先の人から1人1枚ずつ、店札を取って値段を「買う」に書き、空き地に置きます。<b>自分の印（● か ◆）を盤の下側（● の人の側）に向けて</b>置きます。下側のふちの印が持ち主です。取らずに「店番」で1💰もらってもかまいません。だれも取らなかった店札は箱へ。</li>
     <li><b>客メーター</b>：「客」には、前の日の客に、今日置いた店で増えた・減った分を足して書きます（相手の客が変わることもあります）。毎日数え直さなくてよいです。</li>
     <li><b>利息</b>：借りている数×1💰を「利息」に書き、「のこり」を計算して書きます。</li>
   </ol></div><div>
