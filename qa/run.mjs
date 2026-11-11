@@ -12,6 +12,7 @@ import { checkSwStall } from "./sw-check.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const url = pathToFileURL(path.join(root, "index.html")).href;
 const printUrl = pathToFileURL(path.join(root, "print.html")).href;
+const liteUrl = pathToFileURL(path.join(root, "print-lite.html")).href;
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 600) });
 const Y = createRequire(import.meta.url)(path.join(root, "rules.js"));
@@ -87,14 +88,14 @@ const KEY = "yrk-v1";
 
 // ===== 2. ファイル =====
 const html = readFileSync(path.join(root, "index.html"), "utf8");
-const print = readFileSync(path.join(root, "print.html"), "utf8");
+const print = readFileSync(path.join(root, "print.html"), "utf8"), lite = readFileSync(path.join(root, "print-lite.html"), "utf8");
 {
-  const ext = [...(html + print).matchAll(/(?:src|href)="(https?:[^"]+)"/g)].map((m) => m[1]).filter((u) => !/^https:\/\/fonts\.googleapis\.com(\/|$)/.test(u));
+  const ext = [...(html + print + lite).matchAll(/(?:src|href)="(https?:[^"]+)"/g)].map((m) => m[1]).filter((u) => !/^https:\/\/fonts\.googleapis\.com(\/|$)/.test(u));
   check("外から読むのは文字（Google Fonts）だけ。スクリプト・広告・解析を入れない", ext.length === 0, ext.join(","));
-  check("CSP で通信先を自分だけにしている（画面・印刷とも）", [html, print].every((h) => /connect-src 'self'/.test(h) && !/connect-src[^;"]*https/.test(h)));
+  check("CSP で通信先を自分だけにしている（画面・印刷とも）", [html, print, lite].every((h) => /connect-src 'self'/.test(h) && !/connect-src[^;"]*https/.test(h)));
   check("Math.random は練習・2人対戦の種と回の id だけ（今日の盤・あとからは日付の種）", (html.match(/Math\.random/g) || []).length === 2 && !/Math\.random/.test(readFileSync(path.join(root, "rules.js"), "utf8")));
   check("チケット・回数制限・🔒で開くモードを入れない", !/🎫|チケット|ライフ|スタミナ|で開く|解放/.test(html));
-  check("画面にお笑いの言葉を入れない", !/お笑い|ギャグ|ボケ|ツッコミ|なんでやねん/.test(html + print));
+  check("画面にお笑いの言葉を入れない", !/お笑い|ギャグ|ボケ|ツッコミ|なんでやねん/.test(html + print + lite));
   check("Ko-fi は結果の画面の1行（今日の盤で初めて勝ったとき）と下のリンクだけ", /const KOFI = "https:\/\/ko-fi\.com\/satouaaaaa";/.test(html) && /showKofi = MODE === "d" && w === "a" && !s\.kofi\[RUN\.date\]/.test(html));
   const og = (k) => (html.match(new RegExp(`<meta (?:property|name)="${k}" content="([^"]+)"`)) || [])[1] || "";
   const png = readFileSync(path.join(root, "og.png"));
@@ -106,7 +107,7 @@ const print = readFileSync(path.join(root, "print.html"), "utf8");
   const sw = readFileSync(path.join(root, "sw.js"), "utf8"), mf = JSON.parse(readFileSync(path.join(root, "manifest.webmanifest"), "utf8"));
   { const st = await checkSwStall(sw); check("PWA：本文の途中で通信が止まっても4秒で保存したものを返す・ふつうはネットの返事", st.ok, JSON.stringify(st)); }
   const shell = JSON.parse(sw.match(/SHELL = (\[[^\]]+\])/)[1]);
-  const need = ["./index.html", "./rules.js", "./print.html", "./transfer.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
+  const need = ["./index.html", "./rules.js", "./print.html", "./print-lite.html", "./transfer.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
   check("PWA：画面のファイルを全部 SHELL に入れている（電波が無くても遊べる・印刷できる）", need.every((f) => shell.includes(f)), need.filter((f) => !shell.includes(f)).join(","));
   check("PWA：manifest のアイコン（maskable は別の絵）", mf.icons.some((i) => i.purpose === "maskable" && i.src === "icon-maskable-512.png") && mf.icons.filter((i) => !i.purpose).length === 2 && mf.start_url === "./");
   check("記録のキーは yrk-v1 だけ（引き継ぎの data-keys と同じ）", /const KEY = "yrk-v1";/.test(html) && /data-keys="yrk-v1"/.test(html));
@@ -245,10 +246,31 @@ try {
     check("印刷：説明書・盤・店札・お金・印と記録表の5枚で、どの紙からもはみ出さない", pages.length === 5 && pages.every((x) => x[0]), JSON.stringify(pages));
     check("印刷：店札は30枚・盤は25マスで、店札（34mm）が盤のマス（36mm）に乗る", tiles === 30 && cells === 25 && Math.abs(sz[0] - 34) < 0.5 && Math.abs(sz[1] - 36) < 0.5, sz.map((v) => v.toFixed(1)).join("/"));
     check("印刷：説明書の店の値段・客は rules.js と同じ", Y.KINDS.every((k) => print.includes("rules.js")) && await p.evaluate(() => YRK.KINDS.every((k) => document.body.textContent.includes(`${YRK.SHOPS[k].nm} ${YRK.SHOPS[k].c}💰・客${YRK.SHOPS[k].base}`))));
+    check("印刷：説明書に奥付（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）がある", await p.evaluate(() => { const c = document.querySelector('.page[aria-label="説明書"] .colophon'); const t = c ? c.textContent : ""; return /対象年齢 \d+歳以上/.test(t) && t.includes("3歳未満") && t.includes("小さな部品") && t.includes("連絡先：https://") && t.includes("Noto Color Emoji"); }));
+    { const sub = decodeURIComponent((print.match(/family=Noto\+Color\+Emoji&text=([^&"]+)/) || [])[1] || ""); const used = await p.evaluate(() => [...new Set((document.getElementById("sheets").textContent.match(/\p{Extended_Pictographic}/gu) || []))]);
+      check("印刷：使う絵文字はすべて Noto Color Emoji の読み込み（text=）に入っている（端末の絵文字にならない）", used.length > 0 && used.every((e) => sub.includes(e)), used.filter((e) => !sub.includes(e)).join("") || used.join("")); }
     await p.emulateMedia({ media: "print" });
     const pdf = await p.pdf({ format: "A4", preferCSSPageSize: true, printBackground: true });
     const n = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
     check("印刷：PDF にすると A4 でちょうど5ページ", n === 5, `${n}ページ`);
+    await p.close(); }
+  // 切る数の少ない版（A4 4枚）：お金は記録表に鉛筆・持ち主は店札のふちの印
+  { const p = watch(await ctx.newPage()); await p.goto(liteUrl); await p.waitForTimeout(300);
+    const pages = await p.$$eval(".page", (a) => a.map((e) => [e.scrollHeight <= e.clientHeight + 1, e.getAttribute("aria-label")]));
+    check("少ない版：説明書・盤・店札・記録表の4枚で、どの紙からもはみ出さない", pages.length === 4 && pages.every((x) => x[0]), JSON.stringify(pages));
+    check("少ない版：切る札は店札30枚だけ（お金・印・借り札の札が無い）で、どの店札にも ● と ◆ のふちがある", await p.evaluate(() => document.querySelectorAll(".t").length === 30 && [...document.querySelectorAll(".tile")].every((t) => t.querySelector(".own.a")?.textContent === "●" && t.querySelector(".own.b")?.textContent === "◆")));
+    const sz = await p.evaluate(() => { const mm = (px) => (px * 25.4) / 96; return [mm(document.querySelector(".tile").getBoundingClientRect().width), mm(document.querySelector(".board > div").getBoundingClientRect().width)]; });
+    check("少ない版：店札（34mm）が盤のマス（36mm）に乗る", Math.abs(sz[0] - 34) < 0.5 && Math.abs(sz[1] - 36) < 0.5, sz.map((v) => v.toFixed(1)).join("/"));
+    check("少ない版：記録表は2人分 × はじめ＋毎日の行で、はじめの のこり は rules.js の START", await p.evaluate(() => { const t = [...document.querySelectorAll("table.money")]; return t.length === 2 && t.every((x) => x.tBodies[0].rows.length === YRK.DAYS + 1 && x.tBodies[0].rows[0].querySelector(".left").textContent === String(YRK.START)); }));
+    check("少ない版：説明書の店の値段・客は rules.js と同じで、奥付がある", await p.evaluate(() => YRK.KINDS.every((k) => document.body.textContent.includes(`${YRK.SHOPS[k].nm} ${YRK.SHOPS[k].c}💰・客${YRK.SHOPS[k].base}`)) && /対象年齢 \d+歳以上/.test(document.querySelector('.page[aria-label="説明書"] .colophon')?.textContent || "")));
+    { const sub = decodeURIComponent((lite.match(/family=Noto\+Color\+Emoji&text=([^&"]+)/) || [])[1] || ""); const used = await p.evaluate(() => [...new Set((document.getElementById("sheets").textContent.match(/\p{Extended_Pictographic}/gu) || []))]);
+      check("少ない版：使う絵文字はすべて Noto Color Emoji の読み込みに入っている", used.length > 0 && used.every((e) => sub.includes(e)), used.filter((e) => !sub.includes(e)).join("") || used.join("")); }
+    await p.emulateMedia({ media: "print" });
+    const pdf = await p.pdf({ format: "A4", preferCSSPageSize: true, printBackground: true });
+    const n = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
+    check("少ない版：PDF にすると A4 でちょうど4ページ", n === 4, `${n}ページ`);
+    check("少ない版と5枚の版は、たがいにリンクしている（それぞれのファイルで）", print.includes('href="print-lite.html"') && lite.includes('href="print.html"'));
+    check("少ない版：持ち主は盤の同じ側（● の人の側）のふちの印だけで決まる（説明書・盤・店札の案内がそろっている）", await p.evaluate(() => { const t = document.body.textContent; return t.includes("盤の下側（● の人の側）のふちにある印が、その店の持ち主") && document.querySelectorAll(".street")[1]?.textContent.includes("持ち主の印をこちら") && !/自分の印が手前/.test(t); }));
     await p.close(); }
   await ctx.close();
 

@@ -8,11 +8,13 @@
 <meta name="description" content="やりくり商店街を紙で遊ぶための印刷用の盤・店札・お金・説明書（A4で5枚）。">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<!-- 店の絵は商用で使える Noto Color Emoji にそろえる（端末の絵文字は売り物に使えないものがある）。text= で使う字だけを読む -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&text=%F0%9F%A5%95%F0%9F%8D%9E%E2%98%95%F0%9F%93%9A%F0%9F%8F%A0%F0%9F%92%B0%E2%9A%94%E2%9A%A0&display=swap">
 <style>
 /* 印刷の組み方：A4・片面・100%。中身は 186×250mm の中に収め、レターの紙でも切れないようにする。
    インクを減らすため、地は白・色は線と絵だけ。切る線は細い破線。 */
 :root{--ink:#1d2a2a;--sub:#4d5b5a;--line:#9aa6a0;--a:#0b6e60;--b:#86306f;--bg:#eef1ea;
-  --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","BIZ UDPGothic",system-ui,sans-serif;--body:"Hiragino Sans","BIZ UDPGothic","Noto Sans JP",system-ui,sans-serif}
+  --display:"Noto Color Emoji","Zen Maru Gothic","Hiragino Maru Gothic ProN","BIZ UDPGothic",system-ui,sans-serif;--body:"Noto Color Emoji","Hiragino Sans","BIZ UDPGothic","Noto Sans JP",system-ui,sans-serif}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.55;padding:12px max(16px,env(safe-area-inset-left,0px))}
@@ -30,6 +32,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1
 .page h3{font-family:var(--display);font-size:11.5pt;margin:2mm 0 0}
 .page p,.page ol,.page ul{margin:0}
 .page ol,.page ul{padding-left:1.3em;display:grid;gap:1mm}
+.colophon{border-top:0.3mm solid var(--line);padding-top:2mm;font-size:7.5pt;color:var(--sub);line-height:1.45}
+.colophon b{color:var(--ink)}
 .foot{margin-top:auto;font-size:8pt;color:var(--sub);display:flex;justify-content:space-between}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
 .ref{border:0.4mm solid var(--ink);border-radius:3mm;padding:3mm;display:grid;gap:1.2mm;font-size:9pt}
@@ -80,7 +84,7 @@ th{font-weight:700}
     <li>印刷の大きさは「100%」か「実際のサイズ」にします（店札が盤のマスに乗る大きさです）。</li>
     <li>厚紙に印刷すると、札がめくりやすくなります。</li>
   </ul>
-  <div class="btns"><button id="print" type="button">印刷する</button><a href="./">ゲームにもどる</a></div>
+  <div class="btns"><button id="print" type="button">印刷する</button><a href="print-lite.html">切る数の少ない版（4枚）</a><a href="./">ゲームにもどる</a></div>
 </div>
 <div class="sheets" id="sheets"></div>
 <script src="rules.js"></script>
@@ -89,6 +93,8 @@ th{font-weight:700}
 const Y = window.YRK, S = Y.SHOPS;
 const foot = (n) => `<div class="foot"><span>やりくり商店街　https://satou-aaaaa.github.io/yarikuri-shotengai/</span><span>${n} / 5</span></div>`;
 const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1（0より下にはならない）</span></div></div>`;
+// 奥付：売るときに箱・袋・説明書に要る表示（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）
+const colophon = () => `<div class="colophon" aria-label="奥付"><b>対象年齢 8歳以上・2人用・20〜30分</b>　⚠ 小さな部品があります。のみこむおそれがあるので、3歳未満のお子さまには与えないでください。<br>制作：satou-aaaaa　連絡先：https://github.com/satou-aaaaa/yarikuri-shotengai/issues　第1版 2026年<br>店の絵：Noto Color Emoji（Google。フォントは SIL Open Font License 1.1、絵は Apache License 2.0）</div>`;
 const days = Array.from({ length: Y.DAYS }, (_, i) => i + 1);
 const pages = [];
 // 1. 説明書
@@ -128,6 +134,7 @@ pages.push(`<section class="page" aria-label="説明書">
   </div></div>
   ${ref()}
   <p style="font-size:8.5pt;color:var(--sub)">スマホやパソコンでも遊べます（1台を2人で回す対戦・となりの店主と1人で）。アプリでは、空き地ごとに客の増え方が出ます。</p>
+  ${colophon()}
   ${foot(1)}
 </section>`);
 // 2. 盤
