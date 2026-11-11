@@ -1,6 +1,8 @@
 // やりくり商店街のきまり（画面 index.html・印刷 print.html・検査 qa/run.mjs が同じものを使う）。
-// 盤は 5×5。毎日3枚の店札から2人が順に1枚ずつ取り、空き地に置く（先に取る人は日ごとに交代）。
-// 日のおわりに、自分の店の客の数だけお金が入り、借りた札1枚につき利息1。10日目のおわりに「お金 − 返していない借り×5」が多いほうの勝ち。
+// 盤は 5×5。毎日3枚の店札から2人が1枚ずつ取り、空き地に置く。どちらが先に取るかは、毎朝のせり（2人がこっそり決めた額を同時に開く）で決める。
+// 日のおわりに、自分の店の客の数（客メーター）だけお金が入り、借りた札1枚につき利息1。
+// 10日目のおわりに「お金 − 返していない借り×5 ＋ 陣取りの点（商店会・通り）」が多いほうの勝ち。
+// 紙で遊ぶとき毎日数え直さなくてよいように、客は「置いたときに変わる分」を足していくだけで出る形にしている（2026-11-11 satouさん「お金の計算が大変」）。
 // ゲームの進み方は「種（seed）＋手の並び（moves）」だけで決まる。となりの店主（AI）も決まった手順で選ぶので、同じ種と手なら同じ結果になる。
 (function (root) {
   "use strict";
@@ -26,13 +28,13 @@
     payday: { e: "💴", nm: "給料日", txt: "全部の店の客 +1" },
     rateup: { e: "📈", nm: "金利が上がる", txt: "今日の利息が2倍" },
     ratedown: { e: "📉", nm: "金利が下がる", txt: "今日の利息はなし" },
-    sale: { e: "🏷", nm: "大売り出し", txt: "🥕八百屋の客が2倍" },
+    sale: { e: "🏷", nm: "大売り出し", txt: "🥕八百屋1軒につき 客 +2" },
     bookfair: { e: "📖", nm: "古本市", txt: "📚本屋の客 +2" },
     morning: { e: "🌅", nm: "朝市", txt: "🍞パン屋・🥕八百屋の客 +1" },
     festival: { e: "🏮", nm: "お祭り", txt: "大通りの店の客 +2" },
     tax: { e: "🧾", nm: "税の日", txt: "自分の店1軒につき 1💰払う（住宅はのぞく）" },
-    holiday: { e: "🎌", nm: "連休", txt: "🏠住宅のとなりの店の客 +1" },
-    work: { e: "🚧", nm: "道路工事", txt: "大通りの店の客 −1" },
+    holiday: { e: "🎌", nm: "連休", txt: "自分の🏠住宅1軒につき 客 +1" },
+    work: { e: "🚧", nm: "道路工事", txt: "大通りの自分の店1軒につき 客 −1" },
   };
   const EV_KEYS = ["quiet", "rain", "payday", "rateup", "ratedown", "sale", "bookfair", "morning", "festival", "tax", "holiday", "work"];
   const EV_SEE = 3; // 今日をふくめて見える日数
@@ -72,29 +74,54 @@
       if (c.t === "cafe" && (d.t === "hon" || d.t === "pan")) v += 1;
       if (d.t === c.t && d.o !== c.o) v -= 1; // 同じ種類の店が相手の店ととなり合うと、客を取り合って −1
     }
-    v = Math.max(0, v);
+    // 0で止めない（止めると、紙の客メーターに「置いたときの増減」を足すだけでは合わなくなる。1000局で 0.03% の店だけ）
     return c.up ? v + UP_ADD : v;
   }
   function income(board, o, adv) { let s = 0; for (let i = 0; i < board.length; i++) if (board[i] && board[i].o === o) s += cust(board, i, adv); return s; }
-  // 行事の札を入れた、その日の客の数（店ごと）
-  function custEv(board, i, ev) {
-    const c = board[i]; let v = cust(board, i, true); if (!c || c.t === "ie" || !ev) return v;
-    if (ev === "rain" && c.t === "cafe") v += 1;
-    if (ev === "payday") v += 1;
-    if (ev === "sale" && c.t === "yasai") v *= 2;
-    if (ev === "bookfair" && c.t === "hon") v += 2;
-    if (ev === "morning" && (c.t === "pan" || c.t === "yasai")) v += 1;
-    if (ev === "festival" && MAIN.includes(i)) v += 2;
-    if (ev === "holiday" && nb(i).some((j) => board[j] && board[j].t === "ie")) v += 1;
-    if (ev === "work" && MAIN.includes(i)) v = Math.max(0, v - 1);
-    return v;
+  // 行事の札で、その日だけ変わる分（店ごと）。どれも「〇〇の店1軒につき ±いくつ」で、となりは見ない（紙では数えるだけ）
+  function evAdd(board, i, ev) {
+    const c = board[i]; if (!c || !ev) return 0;
+    if (c.t === "ie") return ev === "holiday" ? 1 : 0;
+    if (ev === "rain" && c.t === "cafe") return 1;
+    if (ev === "payday") return 1;
+    if (ev === "sale" && c.t === "yasai") return 2;
+    if (ev === "bookfair" && c.t === "hon") return 2;
+    if (ev === "morning" && (c.t === "pan" || c.t === "yasai")) return 1;
+    if (ev === "festival" && MAIN.includes(i)) return 2;
+    if (ev === "work" && MAIN.includes(i)) return -1;
+    if (ev === "tax") return -1; // 税：店1軒につき 1💰（住宅はのぞく）
+    return 0;
   }
-  // その日の入るお金（行事の札・税をふくむ）。基本ルールでは客の数そのまま
+  // 行事の札を入れた、その日の客の数（店ごと。税はふくまない）
+  const custEv = (board, i, ev) => cust(board, i, true) + (ev === "tax" ? 0 : evAdd(board, i, ev));
+  // その日の入るお金＝客メーター＋行事の札の分（税をふくむ）。基本ルールでは客メーターそのまま
   function dayIncome(board, o, adv, ev) {
     if (!adv) return income(board, o);
-    let s = 0; for (let i = 0; i < board.length; i++) if (board[i] && board[i].o === o) { s += custEv(board, i, ev); if (ev === "tax" && board[i].t !== "ie") s -= 1; }
+    let s = income(board, o, true); for (let i = 0; i < board.length; i++) if (board[i] && board[i].o === o) s += evAdd(board, i, ev);
     return s;
   }
+  // 陣取りの点（おわりに1回だけ数える）。商店会：つながった自分の店（住宅もふくむ）のいちばん大きいかたまり1軒につき1点。
+  // 通り：横5列・たて5列のそれぞれで、自分の店が相手より多ければ LINE_PT 点（同じならどちらも0）。上級の2階建ては、どちらも2軒と数える
+  const LINE_PT = 3;
+  function groupOf(board, o) {
+    const seen = new Array(board.length).fill(false); let best = 0;
+    for (let i = 0; i < board.length; i++) {
+      if (seen[i] || !board[i] || board[i].o !== o) continue;
+      let n = 0; const st = [i]; seen[i] = true;
+      while (st.length) { const k = st.pop(); n += board[k].up ? 2 : 1; for (const j of nb(k)) if (!seen[j] && board[j] && board[j].o === o) { seen[j] = true; st.push(j); } }
+      if (n > best) best = n;
+    }
+    return best;
+  }
+  function linesOf(board, o) {
+    let n = 0;
+    for (let r = 0; r < N; r++) for (const col of [false, true]) {
+      let m = 0, t = 0; for (let k = 0; k < N; k++) { const c = board[col ? k * N + r : r * N + k]; if (c) { const w = c.up ? 2 : 1; if (c.o === o) m += w; else t += w; } }
+      if (m > t) n++;
+    }
+    return n;
+  }
+  const terr = (board, o) => groupOf(board, o) + LINE_PT * linesOf(board, o);
   const rateOf = (ev) => (ev === "rateup" ? 2 : ev === "ratedown" ? 0 : 1);
   function delta(board, t, i, o, adv) {
     const b = board.slice(), m0 = income(b, o, adv), a0 = income(b, other(o), adv);
@@ -122,20 +149,34 @@
 
   function newGame(seed, opts) {
     const deck = deckOf(seed), adv = !!(opts && opts.adv);
-    const g = { seed: seed >>> 0, adv: adv, deck: deck, events: adv ? eventsOf(seed) : null, goals: adv ? goalsOf(seed) : null, day: 1, board: new Array(N * N).fill(null), p: {}, market: [], turn: "a", picks: 0, over: false, last: -1, log: [] };
+    const g = { seed: seed >>> 0, adv: adv, deck: deck, events: adv ? eventsOf(seed) : null, goals: adv ? goalsOf(seed) : null, day: 1, board: new Array(N * N).fill(null), p: {}, market: [], turn: "a", picks: 0, phase: "bid", bid: { a: null, b: null }, tok: tok0(seed), over: false, last: -1, log: [] };
     for (const o of PLAYERS) g.p[o] = { money: START, loans: 0, interest: 0, borrowed: 0, inc: [] };
     openDay(g);
     return g;
   }
-  const firstOf = (day) => (day % 2 === 1 ? "a" : "b");
-  function openDay(g) { g.market = g.deck.slice((g.day - 1) * MARKET, g.day * MARKET); g.picks = 0; g.turn = firstOf(g.day); }
+  // 朝のせり（2026-11-11 satouさん「先攻後攻の有利不利が出ないように」）：毎朝、2人がこっそり額を決め（1P→2P の順に入れるが、相手の額は見ない）、
+  // 同時に開く。多いほうが先に札を取り、その額を払う（もう一方は払わない）。同じ額ならどちらも払わず、優先札を持つ人が先。
+  // 優先札は毎朝せりのあとで相手に回す。はじめに持つ人は種で決める（紙ではじゃんけん）。
+  // 3000局の試し：同じ額のときだけ回す形や、はじめに持つ人を決めておく形では、はじめに持つ人が 47% と差が出た（2026-11-11）
+  const tok0 = (seed) => (hash("tok" + (seed >>> 0)) & 1 ? "a" : "b"); // はじめに優先札を持つ人
+  function openDay(g) { g.market = g.deck.slice((g.day - 1) * MARKET, g.day * MARKET); g.picks = 0; g.phase = "bid"; g.bid = { a: null, b: null }; g.turn = "a"; }
+  function settleBid(g) {
+    const A = g.bid.a, B = g.bid.b, tie = A === B, first = tie ? g.tok : A > B ? "a" : "b", pay = tie ? 0 : g.bid[first];
+    g.p[first].money -= pay; g.p[first].paid = (g.p[first].paid || 0) + pay;
+    g.tok = other(g.tok);
+    g.log.push({ a: "bid", day: g.day, bids: { a: A, b: B }, first, pay, tie, tok: g.tok });
+    g.phase = "play"; g.turn = first; g.first = first;
+  }
+  const firstOf = (g) => g.first;
   const daysLeft = (g) => DAYS - g.day + 1;
   const evOf = (g, day) => (g.adv ? g.events[(day || g.day) - 1] : null);
   // 手が今できるか。手の形：{a:"pick",m:市場の番号,i:マス} / {a:"up",i:マス}（上級：増築） / {a:"pass"} / {a:"borrow"} / {a:"repay"}
   function legal(g, mv) {
     if (g.over || !mv) return false;
     const p = g.p[g.turn];
-    if (mv.a === "pick") { const t = g.market[mv.m]; return !!t && Number.isInteger(mv.i) && mv.i >= 0 && mv.i < N * N && !g.board[mv.i] && p.money >= costAt(t, mv.i, g.adv); }
+    if (g.phase === "bid") { if (mv.a === "bid") return Number.isInteger(mv.v) && mv.v >= 0 && mv.v <= Math.max(0, p.money); if (mv.a === "borrow") return p.loans < MAX_LOANS; if (mv.a === "repay") return p.loans > 0 && p.money >= LOAN; return false; }
+    if (mv.a === "bid") return false;
+    if (mv.a === "pick") { const t = Number.isInteger(mv.m) ? g.market[mv.m] : null; return !!t && Number.isInteger(mv.i) && mv.i >= 0 && mv.i < N * N && !g.board[mv.i] && p.money >= costAt(t, mv.i, g.adv); }
     if (mv.a === "up") { const c = Number.isInteger(mv.i) && g.board[mv.i]; return !!g.adv && !!c && c.o === g.turn && c.t !== "ie" && !c.up && p.money >= upCost(g.board, mv.i); }
     if (mv.a === "pass") return true;
     if (mv.a === "borrow") return p.loans < MAX_LOANS;
@@ -148,6 +189,7 @@
     const who = g.turn, p = g.p[who];
     if (mv.a === "borrow") { p.money += LOAN; p.loans++; p.borrowed++; g.log.push({ who, a: "borrow" }); return true; }
     if (mv.a === "repay") { p.money -= LOAN; p.loans--; g.log.push({ who, a: "repay" }); return true; }
+    if (mv.a === "bid") { g.bid[who] = mv.v; if (who === "a") g.turn = "b"; else settleBid(g); return true; }
     if (mv.a === "pick") { const t = g.market[mv.m]; p.money -= costAt(t, mv.i, g.adv); g.board[mv.i] = { t: t, o: who }; g.market[mv.m] = null; g.last = mv.i; g.log.push({ who, a: "pick", t: t, i: mv.i }); }
     else if (mv.a === "up") { p.money -= upCost(g.board, mv.i); g.board[mv.i] = Object.assign({}, g.board[mv.i], { up: true }); g.last = mv.i; g.log.push({ who, a: "up", t: g.board[mv.i].t, i: mv.i }); }
     else { p.money += 1; g.log.push({ who, a: "pass" }); }
@@ -161,20 +203,25 @@
     g.day++; openDay(g);
     return true;
   }
-  const score = (g, o) => g.p[o].money - LOAN * g.p[o].loans + goalPts(g, o);
+  // コミ（囲碁の考え方）：はじめに優先札を持った人は、1日目に先に取らされるぶん少し不利（陣取りを入れた3000局で 44%）なので、おわりに KOMI 点足す
+  const KOMI = 4;
+  const komiOf = (g, o) => (o === tok0(g.seed) ? KOMI : 0);
+  const score = (g, o) => g.p[o].money - LOAN * g.p[o].loans + goalPts(g, o) + terr(g.board, o) + komiOf(g, o);
   function winner(g) { const a = score(g, "a"), b = score(g, "b"); if (a !== b) return a > b ? "a" : "b"; const ia = income(g.board, "a", g.adv), ib = income(g.board, "b", g.adv); return ia === ib ? null : ia > ib ? "a" : "b"; }
 
   // となりの店主：決まった手順で動く相手。どこに置くと残りの日でいちばん得かを、相手の得を少し引いて比べる。
   // 返すお金があり余裕があれば先に返す。足りない札は、残りが3日以上あって得なら借りてから取る。得が小さければ店番。
   // 上級ルールでは、見えている行事の札・置く場所の値段・増築・自分の目標も数える。
   // level："easy"（やさしい：借りない・増築しない・相手のじゃまと目標を考えない）／"normal"（ふつう）
-  function aiMove(g, level) {
+  // 置く・増築するのに、いちばん得な手を探す（g.turn の人として。g は書きかえない）
+  function searchBest(g, level) {
     const easy = level === "easy", W = easy ? 0 : 0.6;
     const me = g.turn, p = g.p[me], left = daysLeft(g), adv = g.adv;
     // 残りの日の客の増え方の合計（見えている日は行事の札で、その先はふつうの日で数える）
     const gain = (b0, b1, o) => { if (!adv) return (income(b1, o) - income(b0, o)) * left; let s = 0; for (let d = g.day; d <= DAYS; d++) { const ev = d - g.day < EV_SEE ? evOf(g, d) : null; s += dayIncome(b1, o, true, ev) - dayIncome(b0, o, true, ev); } return s; };
     const goalBonus = (b1) => { if (!adv || easy) return 0; let v = 0; const h = { board: b1, p: g.p }; for (const k of g.goals[me]) { const [x0, n] = goalProg(g, me, k), [x1] = goalProg(h, me, k); if (x0 < n && x1 > x0) v += (GOALS[k].pt * (x1 - x0)) / n; } return v * 0.9; };
     const keepNoLoan = adv && !easy && g.goals[me].includes("noloan") && p.borrowed === 0 ? GOALS.noloan.pt : 0; // 目標「借りずに」を守る重さ
+    const t0m = terr(g.board, me), t0o = terr(g.board, other(me)), TW = easy ? 0 : 1; // 陣取りの点の変わり方
     let best = null;
     for (let m = 0; m < MARKET; m++) {
       const t = g.market[m]; if (!t) continue;
@@ -183,7 +230,7 @@
         const c = costAt(t, i, adv), need = Math.max(0, c - p.money), loans = Math.ceil(need / LOAN);
         if (loans > 0 && (easy || left < 3 || p.loans + loans > MAX_LOANS)) continue;
         const b1 = g.board.slice(); b1[i] = { t: t, o: me };
-        const v = gain(g.board, b1, me) - W * gain(g.board, b1, other(me)) + goalBonus(b1) - c - loans * 3 - (loans > 0 ? keepNoLoan : 0); // 借りる重さ：返すまでの利息（おおよそ3日分）
+        const v = gain(g.board, b1, me) - W * gain(g.board, b1, other(me)) + TW * (terr(b1, me) - t0m) - TW * W * (terr(b1, other(me)) - t0o) + goalBonus(b1) - c - loans * 3 - (loans > 0 ? keepNoLoan : 0); // 借りる重さ：返すまでの利息（おおよそ3日分）
         if (!best || v > best.v) best = { v: v, a: "pick", m: m, i: i, loans: loans, c: c };
       }
     }
@@ -191,9 +238,28 @@
       const c0 = g.board[i]; if (!c0 || c0.o !== me || c0.t === "ie" || c0.up) continue;
       const c = upCost(g.board, i); if (p.money < c) continue;
       const b1 = g.board.slice(); b1[i] = Object.assign({}, c0, { up: true });
-      const v = gain(g.board, b1, me) + goalBonus(b1) - c;
+      const v = gain(g.board, b1, me) + TW * (terr(b1, me) - t0m) - TW * W * (terr(b1, other(me)) - t0o) + goalBonus(b1) - c;
       if (!best || v > best.v) best = { v: v, a: "up", i: i, loans: 0, c: c };
     }
+    return best;
+  }
+  // 朝のせりの額：先に取れたときと、相手に先に取られたときの得の差の半分くらいまで出す（相手の額は見ない）。やさしい店主は出さない
+  function aiBid(g, level) {
+    const me = g.turn, op = other(me), p = g.p[me];
+    if (level === "easy") return 0;
+    const val = (b) => (b ? Math.max(b.v, 1) : 1);
+    const as = (o, board, market) => Object.assign({}, g, { turn: o, board: board || g.board, market: market || g.market, phase: "play" });
+    const v1 = val(searchBest(as(me), level)), ob = searchBest(as(op), level);
+    let v2 = v1;
+    if (ob && ob.a === "pick") { const b1 = g.board.slice(); b1[ob.i] = { t: g.market[ob.m], o: op }; const m1 = g.market.slice(); m1[ob.m] = null; v2 = val(searchBest(as(me, b1, m1), level)); }
+    const mine = searchBest(as(me), level), keep = mine && mine.a === "pick" && !mine.loans ? mine.c : 0;
+    return Math.max(0, Math.min(Math.floor((v1 - v2) * BID_K), p.money - keep));
+  }
+  const BID_K = 0.5;
+  function aiMove(g, level) {
+    if (g.phase === "bid") return { a: "bid", v: aiBid(g, level) };
+    const easy = level === "easy", me = g.turn, p = g.p[me], adv = g.adv;
+    const best = searchBest(g, level);
     const pick = best && best.v >= 1 ? best : null;
     // 金利が上がる日の前は、返せるだけ返す
     const rateSoon = adv && !easy && (evOf(g) === "rateup" || (g.day < DAYS && evOf(g, g.day + 1) === "rateup"));
@@ -205,8 +271,9 @@
     return pick.a === "up" ? { a: "up", i: pick.i } : { a: "pick", m: pick.m, i: pick.i };
   }
   // 種と手の並びから今の盤を作り直す（続きから・別のタブとの照らし合わせに使う）
-  function replay(seed, moves, opts) { const g = newGame(seed, opts); for (const mv of moves || []) if (!apply(g, mv)) break; return g; }
+  // 当てられない手で止まったら g.bad にその番号を残す（朝のせりの前の古い記録など。index.html が続きから外す）
+  function replay(seed, moves, opts) { const g = newGame(seed, opts), M = moves || []; for (let k = 0; k < M.length; k++) if (!apply(g, M[k])) { g.bad = k; break; } return g; }
 
-  const api = { UP_ADD, EVENTS, EV_KEYS, EV_SEE, GOALS, GOAL_KEYS, MAIN, CORNER, custEv, dayIncome, rateOf, costAt, upCost, eventsOf, goalsOf, goalProg, goalPts, evOf, SHOPS, KINDS, N, DAYS, LOAN, MAX_LOANS, START, PER_KIND, MARKET, hash, rngOf, seedOfDate, deckOf, nb, cust, income, delta, newGame, legal, apply, score, winner, aiMove, replay, other, firstOf, daysLeft };
+  const api = { UP_ADD, EVENTS, EV_KEYS, EV_SEE, GOALS, GOAL_KEYS, MAIN, CORNER, custEv, evAdd, dayIncome, LINE_PT, groupOf, linesOf, terr, KOMI, komiOf, tok0, rateOf, costAt, upCost, eventsOf, goalsOf, goalProg, goalPts, evOf, SHOPS, KINDS, N, DAYS, LOAN, MAX_LOANS, START, PER_KIND, MARKET, hash, rngOf, seedOfDate, deckOf, nb, cust, income, delta, newGame, legal, apply, score, winner, aiMove, replay, other, firstOf, daysLeft };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.YRK = api;
 })(typeof window !== "undefined" ? window : this);
