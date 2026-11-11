@@ -1,0 +1,40 @@
+# 遊んだ人の感想を受け取るフォーム（ゲームのリポジトリの .github/ISSUE_TEMPLATE/ にそのまま写す）。
+# ゲームの画面からは何も送らない。遊ぶ人が「感想を送る」を押すと、このフォームが開くだけ。
+# 名前・メールなど人を特定する項目は置かない。週1の routines/game-feedback.md が読んで改善に回す。
+# name は「感想」（2字）にしない。2字だと GitHub がフォームを出さず白紙の Issue になった（incidents/2026-11-05-feedback-form-not-shown.md）
+name: 感想フォーム
+description: 遊んでみた感想を送る（名前やメールは要りません）
+title: "[感想] "
+labels: ["感想"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        遊んでくれてありがとう。感想はゲームを直すのに使います。
+        ここに書いたことは公開されます。名前・メール・住所など、自分がわかることは書かないでください。
+  - type: dropdown
+    id: fun
+    attributes:
+      label: 楽しさ（5段階）
+      options:
+        - "5 とても楽しい"
+        - "4 楽しい"
+        - "3 ふつう"
+        - "2 あまり"
+        - "1 楽しくない"
+    validations:
+      required: true
+  - type: textarea
+    id: good
+    attributes:
+      label: よかった所
+      placeholder: 例）最後の問題で、なるほどと思った
+    validations:
+      required: false
+  - type: textarea
+    id: fix
+    attributes:
+      label: 直してほしい所
+      placeholder: 例）3問目がむずかしすぎる／ボタンが押しにくい
+    validations:
+      required: false

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'">
+<title>やりくり商店街（印刷して遊ぶ）</title>
+<meta name="description" content="やりくり商店街を紙で遊ぶための印刷用の盤・店札・お金・説明書（A4で5枚）。">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* 印刷の組み方：A4・片面・100%。中身は 186×250mm の中に収め、レターの紙でも切れないようにする。
+   インクを減らすため、地は白・色は線と絵だけ。切る線は細い破線。 */
+:root{--ink:#1d2a2a;--sub:#4d5b5a;--line:#9aa6a0;--a:#0b6e60;--b:#86306f;--bg:#eef1ea;
+  --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","BIZ UDPGothic",system-ui,sans-serif;--body:"Hiragino Sans","BIZ UDPGothic","Noto Sans JP",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.55;padding:12px max(16px,env(safe-area-inset-left,0px))}
+.guide{max-width:640px;margin:0 auto 16px;display:flex;flex-direction:column;gap:8px}
+.guide h1{font-family:var(--display);font-size:1.5rem;margin:0}
+.guide p,.guide ul{margin:0}
+.guide ul{padding-left:1.2em}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btns a,.btns button{font:inherit;font-family:var(--display);font-weight:700;border:2px solid var(--ink);border-radius:999px;background:#fff;color:var(--ink);padding:8px 16px;min-height:44px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btns button{background:var(--ink);color:#fff}
+:is(button,a):focus-visible{outline:3px solid #b4471a!important;outline-offset:2px!important}
+.sheets{overflow-x:auto}
+.page{width:210mm;height:297mm;overflow:hidden;margin:0 auto 12px;background:#fff;padding:18mm 12mm;box-shadow:0 1px 4px #0003;display:flex;flex-direction:column;gap:4mm;font-size:10pt}
+.page h2{font-family:var(--display);font-size:16pt;margin:0}
+.page h3{font-family:var(--display);font-size:11.5pt;margin:2mm 0 0}
+.page p,.page ol,.page ul{margin:0}
+.page ol,.page ul{padding-left:1.3em;display:grid;gap:1mm}
+.foot{margin-top:auto;font-size:8pt;color:var(--sub);display:flex;justify-content:space-between}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+.ref{border:0.4mm solid var(--ink);border-radius:3mm;padding:3mm;display:grid;gap:1.2mm;font-size:9pt}
+.ref div{display:grid;grid-template-columns:7mm 1fr;gap:1mm}
+table{border-collapse:collapse;width:100%;font-size:9pt}
+th,td{border:0.3mm solid var(--line);padding:1mm 1.5mm;text-align:center;height:7mm}
+th{font-weight:700}
+/* 盤：36mm × 5 */
+.board{display:grid;grid-template-columns:repeat(5,36mm);grid-template-rows:repeat(5,36mm);border:0.8mm solid var(--ink);width:max-content;margin:0 auto}
+.board div{border:0.3mm solid var(--line);display:flex;align-items:flex-end;justify-content:flex-start;padding:1mm;font-size:7pt;color:var(--sub)}
+.street{text-align:center;font-family:var(--display);font-size:11pt;letter-spacing:.3em}
+/* 札：切って使う。店札 34mm 角（盤のマスに乗る）・お金 30mm 角・印 20mm 丸 */
+.grid{display:grid;justify-content:center}
+.tiles{grid-template-columns:repeat(5,34mm);grid-auto-rows:34mm}
+.coins{grid-template-columns:repeat(6,28mm);grid-auto-rows:28mm}
+.t{border:0.3mm dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.5mm;padding:1.5mm;overflow:hidden}
+.t .e{font-size:20pt;line-height:1.1}
+.t .nm{font-family:var(--display);font-weight:900;font-size:10pt}
+.t .x{font-size:6.6pt;line-height:1.3;color:var(--sub)}
+.t .c{position:absolute}
+.tile{position:relative}
+.tile .cost{position:absolute;top:1mm;left:1.5mm;font-size:8pt;font-weight:700}
+.tile .base{position:absolute;top:1mm;right:1.5mm;font-size:8pt;font-weight:700}
+.coin .v{font-family:var(--display);font-weight:900;font-size:18pt}
+.coin.five .v{font-size:22pt}
+.coin.five{border-style:solid;border-width:0.6mm;border-color:var(--ink)}
+.marks{grid-template-columns:repeat(8,22mm);grid-auto-rows:22mm}
+.mark{border-radius:50%;font-size:16pt;font-weight:900}
+.mark.a{color:var(--a);border:0.8mm solid var(--a)}
+.mark.b{color:var(--b);border:0.8mm dashed var(--b)}
+.loans{grid-template-columns:repeat(3,58mm);grid-auto-rows:26mm}
+.loan .nm{font-size:11pt}
+@page{size:A4;margin:0}
+@media print{
+  body{background:#fff;padding:0}
+  .guide{display:none}
+  .page{margin:0;box-shadow:none;break-after:page;page-break-after:always}
+  .page:last-child{break-after:auto;page-break-after:auto}
+}
+</style>
+</head>
+<body>
+<div class="guide">
+  <h1>やりくり商店街を紙で遊ぶ</h1>
+  <p>下の5枚を印刷し、札を線で切れば、2人で遊べます。用意するのは、はさみだけです。</p>
+  <ul>
+    <li>紙は A4（レターでも切れません）。片面・カラーでも白黒でも遊べます。</li>
+    <li>印刷の大きさは「100%」か「実際のサイズ」にします（店札が盤のマスに乗る大きさです）。</li>
+    <li>厚紙に印刷すると、札がめくりやすくなります。</li>
+  </ul>
+  <div class="btns"><button id="print" type="button">印刷する</button><a href="./">ゲームにもどる</a></div>
+</div>
+<div class="sheets" id="sheets"></div>
+<script src="rules.js"></script>
+<script>
+"use strict";
+const Y = window.YRK, S = Y.SHOPS;
+const foot = (n) => `<div class="foot"><span>やりくり商店街　https://satou-aaaaa.github.io/yarikuri-shotengai/</span><span>${n} / 5</span></div>`;
+const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1（0より下にはならない）</span></div></div>`;
+const days = Array.from({ length: Y.DAYS }, (_, i) => i + 1);
+const pages = [];
+// 1. 説明書
+pages.push(`<section class="page" aria-label="説明書">
+  <h2>やりくり商店街　説明書</h2>
+  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、10日目のおわりにお金が多いほうの勝ちです。</p>
+  <div class="two"><div>
+  <h3>じゅんび</h3>
+  <ol>
+    <li>盤をまん中に置きます。</li>
+    <li>店札${Y.KINDS.length * Y.PER_KIND}枚を裏にしてよく混ぜ、山にします。</li>
+    <li>2人はそれぞれ、印（● か ◆）を12枚と、お金を${Y.START}💰持ちます。のこりのお金と借り札は「銀行」にします。</li>
+    <li>●の人が1日目に先に取ります。</li>
+  </ol>
+  <h3>1日のながれ</h3>
+  <ol>
+    <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
+    <li><b>取る</b>：先の人から1人1枚ずつ、お金を払って店札を取り、盤の空き地に置いて、自分の印をのせます。取らずに「店番」をして銀行から1💰もらってもかまいません。</li>
+    <li><b>のこり</b>：だれも取らなかった店札は箱にもどします。</li>
+    <li><b>客を数える</b>：自分の店それぞれの客を数え、その数だけ銀行から💰をもらいます。</li>
+    <li><b>利息</b>：借り札1枚につき1💰を銀行に払います。</li>
+    <li>次の日は、先に取る人が交代します。</li>
+  </ol></div><div>
+  <h3>借りる・返す</h3>
+  <ul>
+    <li>自分の番に、いつでも借り札1枚と5💰をもらえます（1人3枚まで）。</li>
+    <li>自分の番に、5💰を払えば借り札を1枚返せます。</li>
+    <li>返すまで、毎日 利息がかかります。早めに返すほど得です。</li>
+  </ul>
+  <h3>おわり</h3>
+  <ul>
+    <li>10日目の「利息」までやったらおしまい。</li>
+    <li>お金 − 返していない借り札×5 が多いほうの勝ち。同じなら、最後の日の客が多いほう。</li>
+  </ul>
+  <h3>例</h3>
+  <p>☕喫茶のとなりに📚本屋と🍞パン屋があれば、喫茶の客は 1＋1＋1＝3。🏠住宅のとなりの🥕八百屋は 1＋2＝3。</p>
+  </div></div>
+  ${ref()}
+  <p style="font-size:8.5pt;color:var(--sub)">スマホやパソコンでも遊べます（1台を2人で回す対戦・となりの店主と1人で）。アプリでは、空き地ごとに客の増え方が出ます。</p>
+  ${foot(1)}
+</section>`);
+// 2. 盤
+pages.push(`<section class="page" aria-label="盤">
+  <h2>盤（通り）</h2>
+  <p class="street">― 商 店 街 ―</p>
+  <div class="board">${Array.from({ length: 25 }, (_, i) => `<div>${String.fromCharCode(65 + (i % 5))}${1 + Math.floor(i / 5)}</div>`).join("")}</div>
+  <p style="text-align:center;font-size:9pt;color:var(--sub)">店札はマスに1枚。となりは上下左右（ななめは数えません）。</p>
+  ${foot(2)}
+</section>`);
+// 3. 店札
+pages.push(`<section class="page" aria-label="店札">
+  <h2>店札（${Y.KINDS.length}種類×${Y.PER_KIND}枚）</h2>
+  <div class="grid tiles">${Y.KINDS.flatMap((k) => Array.from({ length: Y.PER_KIND }, () => `<div class="t tile"><span class="cost">${S[k].c}💰</span><span class="base">客${S[k].base}</span><span class="e">${S[k].e}</span><span class="nm">${S[k].nm}</span><span class="x">${S[k].txt}</span></div>`)).join("")}</div>
+  ${foot(3)}
+</section>`);
+// 4. お金
+pages.push(`<section class="page" aria-label="お金">
+  <h2>お金（1💰×30枚・5💰×18枚）</h2>
+  <div class="grid coins">${Array.from({ length: 30 }, () => `<div class="t coin"><span class="v">1</span><span class="x">💰</span></div>`).join("")}${Array.from({ length: 18 }, () => `<div class="t coin five"><span class="v">5</span><span class="x">💰</span></div>`).join("")}</div>
+  <p style="font-size:8.5pt;color:var(--sub)">足りなくなったら、メモや別の小物で代わりにしてかまいません。</p>
+  ${foot(4)}
+</section>`);
+// 5. 印・借り札・記録表
+pages.push(`<section class="page" aria-label="印・借り札・記録表">
+  <h2>印・借り札・記録表</h2>
+  <div class="grid marks">${["a", "b"].flatMap((o) => Array.from({ length: 12 }, () => `<div class="t mark ${o}">${o === "a" ? "●" : "◆"}</div>`)).join("")}</div>
+  <div class="grid loans">${Array.from({ length: 6 }, () => `<div class="t loan"><span class="nm">借り札</span><span class="x">返すまで毎日 利息1💰。返すときは5💰</span></div>`).join("")}</div>
+  <h3>記録表（日ごとの客と利息）</h3>
+  <table><thead><tr><th>日</th>${days.map((d) => `<th>${d}</th>`).join("")}<th>おわり</th></tr></thead>
+  <tbody><tr><th>● 客</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>● 利息</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>◆ 客</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>◆ 利息</th>${days.map(() => "<td></td>").join("")}<td></td></tr></tbody></table>
+  ${foot(5)}
+</section>`);
+document.getElementById("sheets").innerHTML = pages.join("");
+document.getElementById("print").onclick = () => window.print();
+</script>
+</body>
+</html>

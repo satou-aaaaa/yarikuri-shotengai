@@ -1,0 +1,27 @@
+name: QA
+
+# ゲームの QA：ブラウザで自動で遊んで確かめる（Claude は使わない）。中身は共通部品 satou-aaaaa/shared-workflows の game-qa.yml。
+# 検査の名前は「qa / qa」（Auto merge の require_checks と main のルールセットの必須チェック。ジョブ名 qa を変えない）。
+# 落ちたら qa-report/report.md を見る。手元では node qa/run.mjs で同じものが回る。
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # 公開後の確認（Post-deploy check）の差し戻しの PR で、検査を起こすのに使う（GITHUB_TOKEN の PR では pull_request が動かない）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# PR の古い実行だけ止める。main の実行は止めない（続けてマージしたとき、先のコミットの失敗が Issue にならないのを防ぐ。2026-11-07 CodeRabbit）
+concurrency:
+  # main は実行ごとに別のグループにする（同じグループだと、待っている main の実行が後の実行に取り消される。2026-11-07 atsusa-shisu #1・chikei-ate #2 の CodeRabbit）
+  group: qa-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  qa:
+    uses: satou-aaaaa/shared-workflows/.github/workflows/game-qa.yml@main
+    # with:
+    #   npm_dir: qa              # package-lock.json のあるフォルダ
+    #   command: node qa/run.mjs

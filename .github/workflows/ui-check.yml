@@ -1,0 +1,15 @@
+name: UI check
+
+# PR の画面の使いやすさ（押せる部品の数・押す所の大きさ・小さい字・名前の無いボタン・横のはみ出し）を基準と比べる（Claude は使わない）。
+# 中身は共通部品 satou-aaaaa/shared-workflows。qa/ui-check.json が無いあいだは何もしない。
+# 始め方: qa/ui-check.json を書き（見本は shared-workflows の scripts/fixtures/ui/config.json）、
+#   node <shared-workflows>/scripts/ui-check.mjs qa/ui-check.json --update-baseline で基準を作って入れる。
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ui:
+    uses: satou-aaaaa/shared-workflows/.github/workflows/ui-check.yml@main

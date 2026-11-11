@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'">
+<title>やりくり商店街</title>
+<meta name="description" content="5×5の通りにお店を並べて客を呼ぶ、2人対戦のボードゲーム。1台を2人で回すか、となりの店主と1人で。印刷して紙でも遊べます。">
+<meta name="theme-color" content="#eef1ea">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="やりくり商店街">
+<meta property="og:title" content="やりくり商店街：お店を並べて、客を呼ぶ2人対戦">
+<meta property="og:description" content="置き場所・店札の取り合い・借りる時期。10日目にお金が多いほうの勝ち。印刷して紙でも遊べます。">
+<meta property="og:url" content="https://satou-aaaaa.github.io/yarikuri-shotengai/">
+<meta property="og:image" content="https://satou-aaaaa.github.io/yarikuri-shotengai/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="やりくり商店街：5×5の通りにお店を並べる2人対戦のボードゲーム">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* 商店街の通り：上に2人の持ち物、まん中に市場（店札3枚）と 5×5 の通り、下に手のボタン */
+:root{
+  --bg:#eef1ea; --panel:#fbfcf8; --ink:#1d2a2a; --sub:#4d5b5a; --line:#b9c4bd;
+  --a:#0b6e60; --b:#86306f; --accent:#b4471a; --cell:#f6f8f3; --good:#0f6b4d; --bad:#a3231b; --hi:#fff3cd;
+  --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","BIZ UDPGothic",system-ui,sans-serif;
+  --body:"Hiragino Sans","BIZ UDPGothic","Noto Sans JP",system-ui,sans-serif;
+}
+html.a11y-cvd{--a:#005ab5;--b:#b34700}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 32px}
+main{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-weight:900;font-size:1.7rem;margin:0;letter-spacing:.04em;line-height:1.3}
+h1.title{flex:none}
+h2{font-family:var(--display);font-size:1.15rem;margin:0}
+p{margin:0}
+.sub{color:var(--sub);font-size:.9rem}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+button,.btn{font:inherit;font-family:var(--display);font-weight:700;border-radius:999px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);padding:8px 16px;min-height:44px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+button.main{background:var(--ink);color:var(--panel)}
+button:disabled{opacity:.45;cursor:default}
+.big{width:100%;font-size:1.05rem;min-height:52px}
+.lv{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.lv button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.bar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.who{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;min-width:0}
+.who b{font-family:var(--display)}
+.who .n{font-variant-numeric:tabular-nums;font-size:.92rem}
+.who.a{border-left:6px solid var(--a)} .who.b{border-left:6px dashed var(--b)}
+.who.now{box-shadow:0 0 0 3px var(--accent)}
+.turn{font-family:var(--display);font-weight:900;text-align:center;font-size:1.05rem}
+.market{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.card{border-radius:10px;border:2px solid var(--line);flex-direction:column;gap:0;padding:6px 4px;min-height:86px;background:var(--panel)}
+.card .e{font-size:1.7rem;line-height:1.15}
+.card .nm{font-size:.92rem}
+.card .c{font-size:.82rem;color:var(--sub);font-variant-numeric:tabular-nums;font-weight:500}
+.card[aria-pressed="true"]{border-color:var(--accent);background:var(--hi)}
+.card:disabled{opacity:1;background:transparent;border-style:dashed}
+.card.gone{visibility:hidden}
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--line);padding:4px;border-radius:12px}
+.cell{aspect-ratio:1;min-height:48px;border-radius:7px;border:none;padding:0;position:relative;background:var(--cell);font-family:var(--body)}
+.cell .e{font-size:clamp(1.25rem,6.4vw,2rem)}
+.cell .cu{position:absolute;right:4px;bottom:2px;font-size:.78rem;font-weight:700;font-variant-numeric:tabular-nums}
+.cell .mk{position:absolute;left:4px;top:1px;font-size:.72rem;font-weight:700}
+.cell.a{box-shadow:inset 0 0 0 3px var(--a)} .cell.a .mk{color:var(--a)}
+.cell.b{outline:3px dashed var(--b);outline-offset:-4px} .cell.b .mk{color:var(--b)}
+.cell.can{background:var(--hi);cursor:pointer}
+.cell.can .pv{font-size:.82rem;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums}
+.pv .p{color:var(--good)} .pv .m{color:var(--bad)}
+.cell:disabled{opacity:1;cursor:default}
+.cell.last{animation:pop .4s ease-out}
+@keyframes pop{from{transform:scale(.7)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.cell.last{animation:none}}
+html.a11y-motion .cell.last{animation:none}
+.live{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:2.8em;font-size:.95rem}
+.rules{display:grid;gap:6px;font-size:.93rem}
+.rules div{display:grid;grid-template-columns:2em 1fr;gap:6px}
+.end{border:2px solid var(--ink)}
+.res{font-family:var(--display);font-size:1.5rem;font-weight:900;text-align:center}
+.ach{display:grid;gap:4px;font-size:.92rem;padding:0;margin:0;list-style:none}
+.ach li{display:flex;gap:8px;align-items:baseline}
+.ach .m{width:1.6em;flex:none;text-align:center}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .d{min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--cell);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.78rem;line-height:1.2;padding:2px;font-family:var(--body);font-weight:500}
+.cal .d.today{border:2px solid var(--ink)}
+.cal button.d{border:2px dotted var(--accent);color:var(--ink)}
+.cal .mk{font-size:.95rem}
+footer{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:.92rem;margin-top:8px}
+footer a{color:var(--ink);min-height:44px;display:inline-flex;align-items:center}
+dialog{max-width:min(520px,calc(100vw - 32px));border:2px solid var(--ink);border-radius:14px;background:var(--panel);color:var(--ink);padding:16px}
+dialog::backdrop{background:#000000aa}
+dialog ol{padding-left:1.3em;margin:8px 0;display:grid;gap:6px}
+.note{font-size:.9rem;color:var(--sub)}
+.kofi a{color:var(--ink)}
+:is(button,a):focus-visible{outline:3px solid var(--accent)!important;outline-offset:2px!important}
+</style>
+<!-- a11y:begin 見やすさの設定 v6（shared-workflows template/a11y/a11y.html の写し。ここでは直さず、ひな形を直して全部のゲームへ写す。drift-check と qa/a11y.mjs が同じ中身か見る） -->
+<style id="a11y-css">
+/* だれでも：キーボードで選んだ所に太い枠（WCAG 2.4.7・2.4.13） */
+:is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #1a5fd0!important;outline-offset:2px!important;box-shadow:0 0 0 5px #fff!important}
+/* 読みやすい文字：UD フォント・行間 1.7・字間を少し広げる・斜体にしない（BDA Dyslexia Style Guide） */
+html.a11y-read body{line-height:1.7}
+html.a11y-read body,html.a11y-read body :where(*:not(svg):not(svg *):not([data-a11y-keepfont]):not([data-a11y-keepfont] *)){font-family:"BIZ UDPGothic","BIZ UDGothic","UD デジタル 教科書体 NK-R","UD Digi Kyokasho NK-R","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif!important;font-style:normal!important}
+html.a11y-read :is(p,li,dd,dt,blockquote,[data-a11y-say]){line-height:1.8!important;letter-spacing:.04em!important}
+html.a11y-read em,html.a11y-read i:not([aria-hidden]){font-style:normal!important;font-weight:700}
+/* 動きを減らす：揺れ・点滅・すべる動きを止める（WCAG 2.3.3。端末の「視差効果を減らす」でも自動で入る） */
+html.a11y-calm *,html.a11y-calm *::before,html.a11y-calm *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
+/* 色の見分けを助ける：ゲームごとの形・模様は各ゲームが html.a11y-cvd の下に書く。ここではリンクに下線 */
+html.a11y-cvd a{text-decoration:underline!important}
+/* ふりがな：ゲームが <ruby class="a11y-rb"> を置いた所だけ。選んだときだけ出す */
+html:not(.a11y-ruby) ruby.a11y-rb>rt{display:none}
+/* 設定の画面（どのゲームでも同じ見た目・同じ濃さ。白地に黒で 15:1） */
+.a11y-dlg{max-width:min(420px,calc(100vw - 32px));width:100%;box-sizing:border-box;border:2px solid #1d2320;border-radius:14px;padding:18px 16px 14px;background:#fffdf8;color:#1d2320;font:500 16px/1.6 "BIZ UDPGothic","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;letter-spacing:0}
+.a11y-dlg::backdrop{background:#0008}
+.a11y-dlg:not([open]){display:none}
+.a11y-dlg h2{font-size:19px;margin:0 0 4px;font-weight:700;line-height:1.4}
+.a11y-dlg p{margin:4px 0 10px;font-size:14px;color:#3d4440;line-height:1.6}
+.a11y-dlg label{display:flex;gap:12px;align-items:center;min-height:48px;padding:6px 4px;border-top:1px solid #1d232022;cursor:pointer;line-height:1.4}
+.a11y-dlg label small{display:block;font-size:13px;color:#3d4440}
+.a11y-dlg input[type=checkbox]{width:26px;height:26px;flex:none;accent-color:#1a5fd0;margin:0}
+.a11y-dlg .a11y-row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.a11y-dlg button,.a11y-btn,.a11y-saybtn{min-height:44px;min-width:44px;border-radius:10px;border:2px solid #1d2320;background:#fff;color:#1d2320;font:700 15px/1.2 "BIZ UDPGothic","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;padding:0 14px;cursor:pointer;letter-spacing:0}
+.a11y-dlg button.a11y-ok{background:#1d2320;color:#fff}
+.a11y-btn.a11y-float{position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:2147483000}
+/* 読み上げボタンが、いちばん下のボタン・リンクにかぶらないよう下をあける */
+html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
+.a11y-saybtn{position:fixed;right:max(8px,env(safe-area-inset-right,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:2147483000;box-shadow:0 2px 8px #0003}
+.a11y-saybtn[hidden],.a11y-dlg [hidden]{display:none!important}
+.a11y-note{font-size:13px!important}
+</style>
+<script id="a11y-script">
+/* 見やすさの設定（色覚・ディスレクシア・弱視・動きに弱い人のため）。外へは何も送らない。
+   設定は localStorage の a11y-v1 に置く。同じサイト（satou-aaaaa.github.io）のゲームは同じ設定を使う。
+   ゲームの側でできること：
+   - 設定を開くボタンに data-a11y-open を付ける（無ければ左下に「Aa」のボタンを出す）
+   - 読み上げる文に data-a11y-say を付ける（問題文・知らせなど）
+   - 色の見分けを助ける形・模様は html.a11y-cvd の下に CSS で書く。JS では A11y.on('cvd')
+   - 揺れ・すべる動きを JS で動かすときは、A11y.on('calm') なら止める
+   - 設定が変わると document に a11ychange が届く
+   - 設定の印は html の class「a11y-<設定の名前>」（a11y-read など）。部品の class はこれと重ならない名前にする（2026-11-05 a11y-say がボタンとぶつかった） */
+(() => {
+  const KEY = "a11y-v1";
+  const root = document.documentElement;
+  const OPTS = [
+    ["read", "読みやすい文字", "UD フォント・行間と字間を広く"],
+    ["cvd", "色の見分けを助ける", "色に形・模様・記号を足す"],
+    ["calm", "動きを減らす", "揺れ・点滅・すべる動きを止める"],
+    ["say", "読み上げのボタンを出す", "問題や知らせを声で読む（端末の中の声だけ）"],
+    ["ruby", "ふりがなを出す", "むずかしい漢字に読みを付ける"],
+  ];
+  const media = (q) => { try { return matchMedia(q).matches; } catch { return false; } };
+  // 保存した値がオブジェクトでなければ（別のページが書いた・手で直した）無かったことにする（2026-11-05 CodeRabbit：true が入ると設定が開けなくなる）
+  const load = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || "{}"); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; } catch { return {}; } };
+  let S = load();
+  // 決めていないものは端末の設定に合わせる（視差効果を減らす → 動きを減らす）
+  const on = (k) => (k in S ? !!S[k] : k === "calm" ? media("(prefers-reduced-motion: reduce)") : false);
+  let fontLoaded = false;
+  const loadFont = () => {
+    if (fontLoaded) return; fontLoaded = true;
+    // Google Fonts を許しているページだけ取りに行く（許していなければ端末にある UD フォントを使う）
+    const csp = (document.querySelector('meta[http-equiv="Content-Security-Policy"]') || {}).content || "";
+    if (csp && !/fonts\.googleapis\.com/.test(csp)) return;
+    const l = document.createElement("link");
+    l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap";
+    document.head.appendChild(l);
+  };
+  const apply = () => {
+    for (const [k] of OPTS) root.classList.toggle("a11y-" + k, on(k));
+    if (on("read")) loadFont();
+    if (sayBtn) sayBtn.hidden = !on("say");
+    if (!on("say")) stop();
+  };
+  const set = (k, v) => {
+    S = { ...S, ...load() }; // 別のタブで変えた設定を消さないよう、書く前に読み直す
+    S[k] = !!v;
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* 保存できなくても今の画面には効かせる */ }
+    apply();
+    document.dispatchEvent(new CustomEvent("a11ychange", { detail: { key: k, on: !!v } }));
+  };
+
+  // 読み上げ：端末の中の日本語の声だけを使う（外へ文字を送る声は使わない）
+  const voice = () => { try { return speechSynthesis.getVoices().find((v) => /^ja/i.test(v.lang) && v.localService) || null; } catch { return null; } };
+  const stop = () => { try { speechSynthesis.cancel(); } catch { /* 無い端末 */ } };
+  const visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && !el.closest("[hidden],[aria-hidden=true],[inert]"); };
+  const textOf = (sel) => [...document.querySelectorAll(sel)].filter(visible).map((el) => (el.getAttribute("aria-label") || el.innerText || "").trim()).filter(Boolean).join("。");
+  // data-a11y-say が無い画面では、見出しと知らせの場所を読む（2026-11-05 何も読まれず設定が開くだけだった）
+  const sayText = () => textOf("[data-a11y-say]") || textOf("h1,h2,[role=status],[aria-live]");
+  const say = (text) => {
+    const v = voice();
+    if (!v || !text) return false;
+    stop();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 600));
+    u.voice = v; u.lang = v.lang; u.rate = 0.95;
+    speechSynthesis.speak(u);
+    return true;
+  };
+
+  let dlg = null, sayBtn = null, lastFocus = null;
+  const build = () => {
+    dlg = document.createElement("dialog");
+    dlg.className = "a11y-dlg";
+    dlg.setAttribute("aria-labelledby", "a11y-h");
+    const hasRuby = !!document.querySelector("ruby.a11y-rb");
+    dlg.innerHTML = `<h2 id="a11y-h">見やすさ・読みやすさ</h2><p>ほかのゲームにも同じ設定が使われます。文字は2本の指で広げると大きくなります。</p>` +
+      OPTS.filter(([k]) => k !== "ruby" || hasRuby).map(([k, n, d]) => `<label><input type="checkbox" data-k="${k}"><span>${n}<small>${d}</small></span></label>`).join("") +
+      `<p class="a11y-note" id="a11y-novoice" hidden>この端末には、外へ送らずに読める日本語の声がありません。</p><div class="a11y-row"><button type="button" class="a11y-ok" data-a11y-close>閉じる</button></div>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener("change", (e) => {
+      const k = e.target.dataset && e.target.dataset.k;
+      if (!k) return;
+      set(k, e.target.checked);
+      if (k === "say") dlg.querySelector("#a11y-novoice").hidden = !(e.target.checked && !voice());
+    });
+    // dialog を知らないブラウザでは close が無いので、open を外して閉じ、フォーカスを戻す（v6。jitensha-rule #1・sekai-jikoku #1 の CodeRabbit）
+    dlg.querySelector("[data-a11y-close]").addEventListener("click", () => { if (dlg.close) dlg.close(); else { dlg.removeAttribute("open"); if (lastFocus && lastFocus.focus) lastFocus.focus(); } });
+    dlg.addEventListener("close", () => { if (lastFocus && lastFocus.focus) lastFocus.focus(); });
+    sayBtn = document.createElement("button");
+    sayBtn.type = "button"; sayBtn.className = "a11y-saybtn"; sayBtn.textContent = "🔊 読む"; sayBtn.setAttribute("aria-label", "画面の問題を読み上げる");
+    sayBtn.addEventListener("click", () => {
+      try { if (speechSynthesis.speaking) return stop(); } catch { /* 無い端末 */ }
+      if (!say(sayText())) open();
+    });
+    document.body.appendChild(sayBtn);
+    if (!document.querySelector("[data-a11y-open]")) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "a11y-btn a11y-float"; b.textContent = "Aa"; b.setAttribute("data-a11y-open", ""); b.setAttribute("aria-label", "見やすさの設定");
+      document.body.appendChild(b);
+    }
+    document.addEventListener("click", (e) => { const t = e.target.closest && e.target.closest("[data-a11y-open]"); if (t) { e.preventDefault(); open(); } });
+    apply();
+  };
+  const open = () => {
+    if (!dlg) build();
+    lastFocus = document.activeElement;
+    for (const c of dlg.querySelectorAll("input[data-k]")) c.checked = on(c.dataset.k);
+    dlg.querySelector("#a11y-novoice").hidden = !(on("say") && !voice());
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  };
+  // 声の一覧はあとから届くことがある。届いたら「声がありません」を出し直す
+  try { speechSynthesis.addEventListener("voiceschanged", () => { if (dlg) dlg.querySelector("#a11y-novoice").hidden = !(on("say") && !voice()); }); } catch { /* 無い端末 */ }
+  apply();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build); else build();
+  window.A11y = { on, set, open, say, stop };
+})();
+</script>
+<!-- a11y:end -->
+<!-- 引き継ぎコード（shared-workflows template/transfer.js の写し）。ゲームの script より前に置く -->
+<script src="transfer.js" data-game="yarikuri-shotengai" data-keys="yrk-v1"></script>
+</head>
+<body>
+<main id="app"></main>
+<dialog id="howto" aria-labelledby="howto-t">
+  <h2 id="howto-t">遊び方</h2>
+  <ol>
+    <li>毎日、市場に3枚の店札が並びます。2人が順に1枚取り、通りの空き地に置きます。先に取る人は日ごとに交代します。</li>
+    <li>店札を選ぶと、空き地に「自分の客の増え方」と「相手の増減」が出ます。</li>
+    <li>日のおわりに、自分の店の客の数だけ💰が入ります。同じ種類の店が相手の店ととなり合うと、客を取り合って両方 −1。</li>
+    <li>足りないときは5💰借りられます（3枚まで）。返すまで、1枚につき毎日 利息1💰。</li>
+    <li>10日目のおわりに「お金 − 返していない借り×5」が多いほうの勝ち。</li>
+  </ol>
+  <p class="note">2人で遊ぶときは、1台を順番に回します。時間制限はありません。紙に印刷しても遊べます。</p>
+  <p><a id="fb2" target="_blank" rel="noopener">感想を送る</a></p>
+  <button class="main big" id="howto-ok" autofocus>わかった</button>
+</dialog>
+<script src="rules.js"></script>
+<script>
+"use strict";
+const Y = window.YRK, S = Y.SHOPS;
+const KEY = "yrk-v1";
+const FEEDBACK = "https://github.com/satou-aaaaa/yarikuri-shotengai/issues/new?template=feedback.yml";
+const KOFI = "https://ko-fi.com/satouaaaaa";
+const EPOCH = "2026-11-11"; // 今日の盤を始めた日（これより前の日は、あとからに出さない）
+const $ = (id) => document.getElementById(id);
+const todayKey = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const prevDay = (k) => new Date(Date.parse(k) - 864e5).toISOString().slice(0, 10);
+
+// ===== 記録 =====
+// runs：途中のゲーム（d＝今日の盤・a＝あとから・p＝練習・v＝2人対戦）。中身は種と手の並びだけ（盤は作り直す）
+const fresh = () => ({ v: 1, tut: false, lv: "normal", runs: {}, days: {}, adays: {}, st: { games: 0, wins: 0, nwins: 0, two: 0, nob: 0, lwin: 0, maxInc: 0, all5: 0, rich: 0 }, ach: {}, kofi: {}, done: [] });
+let mem = null; // 保存できない環境では、開いているあいだだけここに置く
+function load() {
+  let a = null, b = null;
+  try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {}
+  if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null;
+  if (!a || !b) { const s = Object.assign(fresh(), a || b || {}); s.st = Object.assign(fresh().st, s.st); return s; }
+  // 両方あるとき（保存に失敗したあと別のタブが保存した）：新しいほうを元に、記録は両方を合わせ、数は大きいほう
+  a = Object.assign(fresh(), a); b = Object.assign(fresh(), b);
+  const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a];
+  const s = Object.assign(fresh(), n);
+  for (const k of ["days", "adays", "ach", "kofi"]) s[k] = Object.assign({}, o[k], n[k]);
+  s.st = Object.assign(fresh().st, o.st, n.st); for (const k in s.st) s.st[k] = Math.max(o.st[k] || 0, n.st[k] || 0);
+  s.done = [...new Set([...(n.done || []), ...(o.done || [])])].slice(0, 30);
+  s.runs = Object.assign({}, n.runs);
+  for (const m in o.runs) { const x = o.runs[m], y = n.runs[m]; if (x && (!y || (y.id === x.id && x.moves.length > y.moves.length))) if (!s.done.includes(x.id)) s.runs[m] = x; }
+  return s;
+}
+function saveWarn(on) { let b = document.getElementById("savewarn"); const l = document.getElementById("live"), W = "この端末に記録を保存できませんでした。ページを開き直すと、いまの記録が消えます"; if (!on) { if (b) { b.remove(); if (saveWarn.o) saveWarn.o.disconnect(); if (l && l.textContent.includes(W)) l.textContent = l.textContent.replace(W, "").replace(/^[。\s]+|[。\s]+$/g, ""); } return; } if (b) return; b = document.createElement("div"); b.id = "savewarn"; b.setAttribute("role", "status"); b.textContent = W; b.style.cssText = "position:sticky;top:0;z-index:9999;padding:8px 12px;background:#fff3cd;color:#000;font-size:15px;line-height:1.5;text-align:center;pointer-events:none;border-bottom:2px solid #8a6d00"; (document.body || document.documentElement).prepend(b); if (l) { l.textContent = W; if (window.MutationObserver) { saveWarn.o = new MutationObserver(() => { if (document.getElementById("savewarn") && l.textContent && !l.textContent.includes(W)) l.textContent += "。" + W; }); saveWarn.o.observe(l, { childList: true, characterData: true, subtree: true }); } } } // 帯は画面のいちばん上に場所を取り、#live でも読み上げる。保存できたら帯と #live の警告を消す
+function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; saveWarn(false); } catch (e) { mem = j; saveWarn(true); } return s; }
+function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
+const playedDays = (s) => new Set([...Object.keys(s.days), ...Object.keys(s.adays)]).size;
+
+// 実績（記録から毎回数える。残すのは知らせ終えた印 ach だけ）
+const ACH = [
+  ["open", "はじめての開店", "ゲームを1回終える", (s) => s.st.games, 1],
+  ["win1", "商店街デビュー", "店主に勝つ", (s) => s.st.wins, 1],
+  ["win3", "常連さんの店", "店主に3回勝つ", (s) => s.st.wins, 3],
+  ["win10", "商店街の顔", "店主に10回勝つ", (s) => s.st.wins, 10],
+  ["nwin", "手ごわい相手", "ふつうの店主に勝つ", (s) => s.st.nwins, 1],
+  ["nob", "借りずにやりくり", "一度も借りずに勝つ", (s) => s.st.nob, 1],
+  ["lwin", "借りて、返して", "借りたのを全部返して勝つ", (s) => s.st.lwin, 1],
+  ["busy", "大にぎわい", "客/日を20以上にする", (s) => s.st.maxInc, 20],
+  ["all5", "品ぞろえ", "5種類の店をぜんぶ持つ", (s) => s.st.all5, 1],
+  ["rich", "大あきない", "100💰以上で終える", (s) => s.st.rich, 1],
+  ["two", "ふたりで対戦", "2人対戦を1回終える", (s) => s.st.two, 1],
+  ["week", "7日の商い", "今日の盤を7日遊ぶ（あとからも）", (s) => playedDays(s), 7],
+];
+
+// ===== 画面 =====
+let G = null, RUN = null, MODE = null, sel = null, gen = 0, note = "";
+const names = (mode) => (mode === "v" ? { a: "●1P", b: "◆2P" } : { a: "●あなた", b: "◆店主" });
+const footer = () => `<footer><a href="#" id="f-how">遊び方</a><a href="print.html">印刷して遊ぶ</a><a href="#" data-hk>引き継ぎ</a><a href="#" data-a11y-open>見やすさ</a><a href="${FEEDBACK}" target="_blank" rel="noopener">感想を送る</a><a href="${KOFI}" target="_blank" rel="noopener">Ko-fi で応援</a></footer>`;
+function bindFooter() { const h = $("f-how"); if (h) h.onclick = (e) => { e.preventDefault(); openHow(); }; }
+function openHow() { $("fb2").href = FEEDBACK; const d = $("howto"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
+$("howto").addEventListener("cancel", () => { if (!load().tut) save((s) => { s.tut = true; }); }); // Esc を押したその場で「見た」を残す（close の知らせは遅れて届き、すぐ読み直すと間に合わない）
+$("howto").addEventListener("close", () => { if (!load().tut) save((s) => { s.tut = true; }); }); // Esc で閉じても「見た」を残す
+$("howto-ok").onclick = () => { save((s) => { s.tut = true; }); const d = $("howto"); d.close ? d.close() : d.removeAttribute("open"); }; // 押したらすぐ残す
+
+function rulesHtml() { return `<div class="rules">${Y.KINDS.map((k) => `<div><span aria-hidden="true">${S[k].e}</span><span><b>${S[k].nm}</b>（${S[k].c}💰・客${S[k].base}）${S[k].txt}</span></div>`).join("")}</div>`; }
+
+function calHtml(s) {
+  const t = todayKey(), cells = [];
+  let k = t; for (let i = 0; i < 27; i++) k = prevDay(k);
+  for (let i = 0; i < 28; i++) {
+    const r = s.days[k] || s.adays[k], dd = Number(k.slice(8));
+    const mk = r ? (r.w ? "★" : "○") : "";
+    const lab = `${Number(k.slice(5, 7))}月${dd}日${r ? (r.w ? "、勝ち" : "、遊んだ") : ""}`;
+    const late = !r && k < t && k >= EPOCH && Date.parse(t) - Date.parse(k) <= 7 * 864e5;
+    if (late) cells.push(`<button class="d" data-late="${k}" aria-label="${lab}、あとから遊ぶ">${dd}<span class="mk" aria-hidden="true">▶</span></button>`);
+    else cells.push(`<div class="d${k === t ? " today" : ""}" role="img" aria-label="${lab}">${dd}<span class="mk" aria-hidden="true">${mk || "&nbsp;"}</span></div>`);
+    k = new Date(Date.parse(k) + 864e5).toISOString().slice(0, 10);
+  }
+  return `<div class="cal">${cells.join("")}</div><p class="note">★勝ち ○遊んだ ▶あとから遊べる日（7日前まで。連続の日数には入りません）</p>`;
+}
+
+function home() {
+  gen++; G = null; RUN = null; MODE = null; sel = null;
+  const s = load(), t = todayKey(), td = s.days[t], st = streak(s.days);
+  const cont = (m) => (s.runs[m] && !s.done.includes(s.runs[m].id) ? s.runs[m] : null);
+  const vRun = cont("v"), dRun = cont("d") && cont("d").date === t ? cont("d") : null, pRun = cont("p"), aRun = cont("a");
+  const achNow = ACH.filter((a) => a[3](s) >= a[4]).length;
+  $("app").innerHTML = `
+  <header class="row" style="align-items:baseline;justify-content:space-between"><h1 class="title">やりくり商店街</h1><span class="note">2人対戦のボードゲーム</span></header>
+  <p class="sub">5×5の通りにお店を並べて客を呼びます。10日目に、お金が多いほうの勝ち。</p>
+  <section class="box" aria-labelledby="h-two">
+    <h2 id="h-two">2人で対戦</h2>
+    <p class="note">1台を順番に回して遊びます。</p>
+    ${vRun ? `<button class="main big" id="go-vc">2人対戦の続きから（${vRun.moves.length ? Y.replay(vRun.seed, vRun.moves).day : 1}日目）</button>` : ""}
+    <button class="${vRun ? "" : "main "}big" id="go-v">新しく2人で対戦</button>
+  </section>
+  <section class="box" aria-labelledby="h-one">
+    <h2 id="h-one">1人で（となりの店主と）</h2>
+    <div class="lv" role="group" aria-label="店主の強さ"><span class="note">店主の強さ</span>
+      <button id="lv-e" aria-pressed="${s.lv === "easy"}">やさしい</button><button id="lv-n" aria-pressed="${s.lv !== "easy"}">ふつう</button></div>
+    ${td ? `<p>今日の盤：${td.w ? "★勝ち" : "○遊んだ"}（${td.s}💰 対 ${td.o}💰）。また明日。練習は何回でも遊べます。</p>` : `<button class="main big" id="go-d">${dRun ? "今日の盤の続きから" : "今日の盤"}</button><p class="note">今日の盤（店札の順）はだれでも同じ。1日1回です。</p>`}
+    <button class="big" id="go-p">${pRun ? "練習の続きから" : "練習（ちがう盤）"}</button>
+    ${aRun ? `<button class="big" id="go-a">あとから（${aRun.date.slice(5).replace("-", "/")}）の続きから</button>` : ""}
+  </section>
+  <section class="box" aria-labelledby="h-rec">
+    <h2 id="h-rec">記録</h2>
+    <p>${st >= 1 ? `連続 ${st}日・` : ""}遊んだ日 ${playedDays(s)}日・勝ち ${s.st.wins}回・実績 ${achNow}/${ACH.length}</p>
+    ${calHtml(s)}
+    <details><summary>実績</summary><ul class="ach">${ACH.map((a) => { const v = a[3](s), ok = v >= a[4]; return `<li><span class="m" aria-hidden="true">${ok ? "🏅" : "🔒"}</span><span><b>${a[1]}</b>：${a[2]}${ok ? "（達成）" : `（いま ${Math.min(v, a[4])}/${a[4]}）`}</span></li>`; }).join("")}</ul></details>
+  </section>
+  <section class="box" aria-labelledby="h-shop"><h2 id="h-shop">お店のはたらき</h2>${rulesHtml()}
+    <p class="note">となりは上下左右だけ。同じ種類の店が相手の店ととなり合うと、両方 −1。</p></section>
+  <a class="btn big" href="print.html">印刷して紙で遊ぶ</a>
+  ${footer()}`;
+  bindFooter();
+  $("lv-e").onclick = () => { save((x) => { x.lv = "easy"; }); home(); };
+  $("lv-n").onclick = () => { save((x) => { x.lv = "normal"; }); home(); };
+  $("go-v").onclick = () => start("v", null);
+  if (vRun) $("go-vc").onclick = () => resume("v");
+  if ($("go-d")) $("go-d").onclick = () => (dRun ? resume("d") : start("d", t));
+  $("go-p").onclick = () => (pRun ? resume("p") : start("p", null));
+  if (aRun) $("go-a").onclick = () => resume("a");
+  // 同じ日の途中の回があれば続きから（新しく始めると進めた手が消える。PR #1 の CodeRabbit）
+  document.querySelectorAll("[data-late]").forEach((b) => (b.onclick = () => (aRun && aRun.date === b.dataset.late ? resume("a") : start("a", b.dataset.late))));
+  if (!s.tut) openHow();
+}
+
+function start(mode, date) {
+  const s = load();
+  if (mode === "d" && s.days[date]) return home(); // 別のタブで今日の盤を終えていたら、もう一度は始めない
+  const seed = date ? Y.seedOfDate(date) : (Math.random() * 4294967296) >>> 0;
+  const run = { mode, date: date || todayKey(), seed, lv: mode === "v" ? null : s.lv === "easy" ? "easy" : "normal", moves: [], id: Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36) };
+  save((x) => { x.runs[mode] = run; });
+  open(mode, run);
+}
+function resume(mode) { const r = load().runs[mode]; if (!r) return home(); open(mode, r); }
+function open(mode, run) { gen++; MODE = mode; RUN = run; G = Y.replay(run.seed, run.moves); sel = null; note = run.moves.length ? "続きからです。" : "市場の店札を1枚選んでください。"; draw(); next(); }
+
+// 手を1つ進める。保存した途中経過が画面と同じゲーム・同じ手数かを先に確かめる（古いタブで二重に進めない）
+function act(mv) {
+  const s = load(), r = s.runs[MODE];
+  if (!r || r.id !== RUN.id || r.moves.length !== RUN.moves.length) {
+    if (r && r.id === RUN.id && !s.done.includes(r.id)) { open(MODE, r); note = "別の画面で進んでいたので、そちらに合わせました。"; draw(); return false; }
+    home(); return false;
+  }
+  const who = G.turn;
+  if (!Y.apply(G, mv)) return false;
+  RUN = Object.assign({}, RUN, { moves: RUN.moves.concat([mv]) });
+  note = say(who, mv);
+  save((x) => { x.runs[MODE] = RUN; });
+  if (G.over) finish();
+  return true;
+}
+function say(who, mv) {
+  const nm = names(MODE)[who], L = G.log;
+  let t = mv.a === "pick" ? `${nm}は${S[L.filter((l) => l.a === "pick").pop().t].e}${S[L.filter((l) => l.a === "pick").pop().t].nm}を置きました。` : mv.a === "pass" ? `${nm}は店番をしました（+1💰）。` : mv.a === "borrow" ? `${nm}は5💰借りました。` : `${nm}は5💰返しました。`;
+  const d = L[L.length - 1];
+  if (d && d.a === "day") t += ` ${d.day}日目のおわり：${["a", "b"].map((o) => `${names(MODE)[o]} +${d.inc[o]}${d.it[o] ? `（利息 −${d.it[o]}）` : ""}`).join("、")}。`;
+  return t;
+}
+const aiTurn = () => G && !G.over && MODE !== "v" && G.turn === "b";
+function next() {
+  if (!aiTurn()) return;
+  const g = gen;
+  setTimeout(() => { if (g !== gen || !aiTurn()) return; if (act(Y.aiMove(G, RUN.lv))) { draw(); next(); } }, 650); // 画面が替わっていたら何もしない
+}
+
+function finish() {
+  const s0 = load(); if (s0.done.includes(RUN.id)) return;
+  const a = Y.score(G, "a"), b = Y.score(G, "b"), w = Y.winner(G) === "a";
+  const kinds = new Set(G.board.filter((c) => c && c.o === "a").map((c) => c.t)).size;
+  save((s) => {
+    s.done = [RUN.id, ...s.done].slice(0, 30); s.runs[MODE] = null;
+    s.st.games++;
+    if (MODE === "v") s.st.two++;
+    else {
+      if (w) { s.st.wins++; if (RUN.lv === "normal") s.st.nwins++; if (G.p.a.borrowed === 0) s.st.nob++; else if (G.p.a.loans === 0) s.st.lwin++; }
+      s.st.maxInc = Math.max(s.st.maxInc, ...G.p.a.inc); if (kinds === 5) s.st.all5++; if (a >= 100) s.st.rich++;
+      if (MODE === "d" && !s.days[RUN.date]) s.days[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv };
+      if (MODE === "a" && !s.adays[RUN.date] && !s.days[RUN.date]) s.adays[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv };
+    }
+  });
+}
+
+function draw() {
+  const nm = names(MODE), human = !G.over && (MODE === "v" || G.turn === "a"), me = G.turn ? G.p[G.turn] : null;
+  const title = MODE === "d" ? "今日の盤" : MODE === "a" ? `あとから（${RUN.date.slice(5).replace("-", "/")}）` : MODE === "p" ? "練習" : "2人対戦";
+  const selT = sel !== null ? G.market[sel] : null;
+  const who = (o) => `<div class="who ${o}${G.turn === o ? " now" : ""}"><b>${nm[o]}${G.turn === o ? "の番" : ""}</b><span class="n">💰${G.p[o].money}　借り${G.p[o].loans}　客/日 ${Y.income(G.board, o)}</span></div>`;
+  const cards = G.market.map((t, m) => {
+    if (!t) return `<button class="card gone" disabled aria-hidden="true" tabindex="-1"></button>`;
+    const short = me && S[t].c > me.money;
+    return `<button class="card" data-m="${m}" aria-pressed="${sel === m}" ${!human || short ? "disabled" : ""} aria-label="${S[t].nm}、${S[t].c}💰${short ? "、お金が足りない" : ""}"><span class="e" aria-hidden="true">${S[t].e}</span><span class="nm">${S[t].nm}</span><span class="c">${S[t].c}💰${short ? "・足りない" : ""}</span></button>`;
+  }).join("");
+  const cells = G.board.map((c, i) => {
+    if (c) { const cu = Y.cust(G.board, i); return `<button class="cell ${c.o}${i === G.last ? " last" : ""}" disabled aria-label="${nm[c.o]}の${S[c.t].nm}${c.t === "ie" ? "" : `、客${cu}`}"><span class="mk" aria-hidden="true">${c.o === "a" ? "●" : "◆"}</span><span class="e" aria-hidden="true">${S[c.t].e}</span>${c.t === "ie" ? "" : `<span class="cu" aria-hidden="true">${cu}</span>`}</button>`; }
+    if (selT && human) { const d = Y.delta(G.board, selT, i, G.turn); return `<button class="cell can" data-i="${i}" aria-label="ここに置く。客/日 +${d.me}${d.op ? `、相手 ${d.op}` : ""}"><span class="pv" aria-hidden="true"><span class="p">+${d.me}</span>${d.op ? `<br><span class="m">相手${d.op > 0 ? "+" : ""}${d.op}</span>` : ""}</span></button>`; }
+    return `<button class="cell" disabled aria-label="空き地"></button>`;
+  }).join("");
+  let end = "";
+  if (G.over) {
+    const a = Y.score(G, "a"), b = Y.score(G, "b"), w = Y.winner(G), s = load();
+    const res = w === null ? "引き分け" : MODE === "v" ? `${nm[w]}の勝ち！` : w === "a" ? "あなたの勝ち！" : "店主の勝ち";
+    const near = ACH.filter((x) => x[3](s) < x[4]).sort((p, q) => q[3](s) / q[4] - p[3](s) / p[4])[0];
+    const newA = ACH.filter((x) => x[3](s) >= x[4] && !s.ach[x[0]]);
+    if (newA.length) save((x) => { for (const n of newA) x.ach[n[0]] = 1; });
+    const showKofi = MODE === "d" && w === "a" && !s.kofi[RUN.date];
+    if (showKofi) save((x) => { x.kofi[RUN.date] = 1; });
+    end = `<section class="box end" aria-labelledby="h-end"><h2 id="h-end" class="res" tabindex="-1">${res}</h2>
+      <p style="text-align:center">${nm.a} ${a}💰 ／ ${nm.b} ${b}💰</p>
+      <p class="note">お金から、返していない借り×5を引いた数です。利息で払った合計：${nm.a} ${G.p.a.interest}💰・${nm.b} ${G.p.b.interest}💰。借りたら、早めに返すほど利息は少なくなります。</p>
+      ${newA.length ? `<p>🏅 実績：${newA.map((x) => x[1]).join("・")}</p>` : ""}
+      ${near && MODE !== "v" ? `<p class="note">あと少しの実績：${near[1]}（${near[2]}・いま ${near[3](s)}/${near[4]}）</p>` : ""}
+      <div class="row"><button class="main" id="again">${MODE === "v" ? "もう一度2人で" : "練習でもう一度"}</button><button id="home2">ホームへ</button></div>
+      ${showKofi ? `<p class="note kofi">楽しめたら、<a href="${KOFI}" target="_blank" rel="noopener">Ko-fi でコーヒー1杯の応援</a>をもらえると、新しいゲームづくりの励みになります（任意です）。</p>` : ""}
+    </section>`;
+  }
+  $("app").innerHTML = `
+  <div class="row" style="justify-content:space-between;align-items:center"><button id="back">← ホーム</button><span class="note">${title}${RUN.lv ? `・店主 ${RUN.lv === "easy" ? "やさしい" : "ふつう"}` : ""}</span></div>
+  <div class="bar">${who("a")}${who("b")}</div>
+  <p class="turn">${G.over ? "おしまい" : `${G.day} / ${Y.DAYS}日目　${nm[G.turn]}の番${human ? "" : "…"}`}</p>
+  <div class="market" role="group" aria-label="市場の店札">${cards}</div>
+  <p class="live" id="live" role="status" aria-live="polite">${note}</p>
+  <div class="board" role="group" aria-label="通り（5×5）">${cells}</div>
+  <div class="row"><button id="borrow" ${human && me.loans < Y.MAX_LOANS ? "" : "disabled"}>借りる +5💰</button><button id="repay" ${human && me.loans > 0 && me.money >= Y.LOAN ? "" : "disabled"}>返す −5💰</button><button id="pass" ${human ? "" : "disabled"}>店番する +1💰</button></div>
+  ${end}
+  <details class="box"><summary>お店のはたらき</summary>${rulesHtml()}</details>
+  ${footer()}`;
+  bindFooter();
+  $("back").onclick = home;
+  document.querySelectorAll(".card[data-m]").forEach((b) => (b.onclick = () => { const m = Number(b.dataset.m); sel = sel === m ? null : m; note = sel === null ? "" : `${S[G.market[m]].nm}：空き地の数字は、置いたときの客/日の増え方です。置く所を押してください。`; draw(); }));
+  document.querySelectorAll(".cell[data-i]").forEach((b) => (b.onclick = () => { const m = sel; sel = null; if (act({ a: "pick", m, i: Number(b.dataset.i) })) { draw(); next(); } }));
+  $("borrow").onclick = () => { if (act({ a: "borrow" })) { note += " 返すまで、毎日 利息1💰。"; draw(); } };
+  $("repay").onclick = () => { if (act({ a: "repay" })) draw(); };
+  $("pass").onclick = () => { sel = null; if (act({ a: "pass" })) { draw(); next(); } };
+  if ($("again")) $("again").onclick = () => start(MODE === "v" ? "v" : "p", null);
+  if ($("home2")) $("home2").onclick = home;
+  if (G.over && $("h-end")) { $("h-end").focus({ preventScroll: true }); $("h-end").scrollIntoView({ block: "center" }); } // おわったら結果を見せる
+}
+
+window.__yk = { Y, load, save, home, start, resume, act, todayKey, get G() { return G; }, get RUN() { return RUN; }, get MODE() { return MODE; }, ACH };
+home();
+if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
