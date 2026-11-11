@@ -85,6 +85,18 @@ html.a11y-motion .cell.last{animation:none}
 .rules div{display:grid;grid-template-columns:2em 1fr;gap:6px}
 .end{border:2px solid var(--ink)}
 .res{font-family:var(--display);font-size:1.5rem;font-weight:900;text-align:center}
+/* 上級ルール：大通りは色だけでなく斜めの線で分ける。2階建ては「2F」の字 */
+.cell.ave{background-image:repeating-linear-gradient(135deg,transparent 0 7px,rgba(180,71,26,.16) 7px 9px)}
+.cell .up{position:absolute;right:3px;top:1px;font-size:.66rem;font-weight:900;background:var(--ink);color:var(--panel);border-radius:4px;padding:0 3px;line-height:1.35}
+.cell .pv.up2{position:absolute;left:0;right:0;top:1px;font-size:.72rem;color:var(--bad);font-weight:700}
+.tag{font-size:.8rem;border:1.5px solid var(--ink);border-radius:6px;padding:0 6px;font-weight:700}
+.evs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0}
+.ev{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:4px 6px;font-size:.82rem;display:flex;flex-direction:column;min-width:0}
+.ev.now{border:2px solid var(--ink)}
+.ev .w{font-size:.74rem;color:var(--sub)} .ev .t{color:var(--sub);font-size:.76rem}
+.goals{list-style:none;padding:0;margin:4px 0;display:grid;gap:4px;font-size:.92rem}
+.goals li{display:flex;gap:8px;align-items:baseline}
+.goals .pr{display:block;font-size:.82rem;color:var(--sub)}
 .ach{display:grid;gap:4px;font-size:.92rem;padding:0;margin:0;list-style:none}
 .ach li{display:flex;gap:8px;align-items:baseline}
 .ach .m{width:1.6em;flex:none;text-align:center}
@@ -266,6 +278,13 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
     <li>足りないときは5💰借りられます（3枚まで）。返すまで、1枚につき毎日 利息1💰。</li>
     <li>10日目のおわりに「お金 − 返していない借り×5」が多いほうの勝ち。</li>
   </ol>
+  <h3>上級ルール（ホームで切り替え）</h3>
+  <ul>
+    <li><b>大通り</b>：まん中の横の列は、客 +1・値段 +1（住宅は値段だけ）。</li>
+    <li><b>行事の札</b>：毎日1枚。今日とその先2日分が見えます（雨の日・お祭り・金利が上がる など）。</li>
+    <li><b>増築</b>：店札を取るかわりに、自分の店（住宅のぞく）を2階建てにできます。値段はその店と同じ、客 +2（行事の「2倍」は足してから2倍）。</li>
+    <li><b>秘密の目標</b>：はじめに2枚ずつ。10日目のおわりに満たしていれば、その点が💰に足されます。同じ点なら、最後の日の客（行事の札は入れない）で比べます。相手の目標はおわるまで見えません。</li>
+  </ul>
   <p class="note">2人で遊ぶときは、1台を順番に回します。時間制限はありません。紙に印刷しても遊べます。</p>
   <p><a id="fb2" target="_blank" rel="noopener">感想を送る</a></p>
   <button class="main big" id="howto-ok" autofocus>わかった</button>
@@ -284,7 +303,7 @@ const prevDay = (k) => new Date(Date.parse(k) - 864e5).toISOString().slice(0, 10
 
 // ===== 記録 =====
 // runs：途中のゲーム（d＝今日の盤・a＝あとから・p＝練習・v＝2人対戦）。中身は種と手の並びだけ（盤は作り直す）
-const fresh = () => ({ v: 1, tut: false, lv: "normal", runs: {}, days: {}, adays: {}, st: { games: 0, wins: 0, nwins: 0, two: 0, nob: 0, lwin: 0, maxInc: 0, all5: 0, rich: 0 }, ach: {}, kofi: {}, done: [] });
+const fresh = () => ({ v: 1, tut: false, lv: "normal", rule: "basic", runs: {}, days: {}, adays: {}, st: { games: 0, wins: 0, nwins: 0, two: 0, nob: 0, lwin: 0, maxInc: 0, all5: 0, rich: 0, awins: 0, goals: 0 }, ach: {}, kofi: {}, done: [] });
 let mem = null; // 保存できない環境では、開いているあいだだけここに置く
 function load() {
   let a = null, b = null;
@@ -321,11 +340,13 @@ const ACH = [
   ["all5", "品ぞろえ", "5種類の店をぜんぶ持つ", (s) => s.st.all5, 1],
   ["rich", "大あきない", "100💰以上で終える", (s) => s.st.rich, 1],
   ["two", "ふたりで対戦", "2人対戦を1回終える", (s) => s.st.two, 1],
+  ["adv", "上級の店主", "上級ルールで店主に勝つ", (s) => s.st.awins, 1],
+  ["goal", "ねらいどおり", "上級ルールで秘密の目標を2つとも満たす", (s) => s.st.goals, 1],
   ["week", "7日の商い", "今日の盤を7日遊ぶ（あとからも）", (s) => playedDays(s), 7],
 ];
 
 // ===== 画面 =====
-let G = null, RUN = null, MODE = null, sel = null, gen = 0, note = "";
+let G = null, RUN = null, MODE = null, sel = null, gen = 0, note = "", peek = false; // sel：市場の番号か "up"（増築の場所を選ぶ）。peek：2人対戦で、今の番の人が目標を見ている
 const names = (mode) => (mode === "v" ? { a: "●1P", b: "◆2P" } : { a: "●あなた", b: "◆店主" });
 const footer = () => `<footer><a href="#" id="f-how">遊び方</a><a href="print.html">印刷して遊ぶ</a><a href="#" data-hk>引き継ぎ</a><a href="#" data-a11y-open>見やすさ</a><a href="${FEEDBACK}" target="_blank" rel="noopener">感想を送る</a><a href="${KOFI}" target="_blank" rel="noopener">Ko-fi で応援</a></footer>`;
 function bindFooter() { const h = $("f-how"); if (h) h.onclick = (e) => { e.preventDefault(); openHow(); }; }
@@ -360,17 +381,22 @@ function home() {
   $("app").innerHTML = `
   <header class="row" style="align-items:baseline;justify-content:space-between"><h1 class="title">やりくり商店街</h1><span class="note">2人対戦のボードゲーム</span></header>
   <p class="sub">5×5の通りにお店を並べて客を呼びます。10日目に、お金が多いほうの勝ち。</p>
+  <section class="box" aria-labelledby="h-rule">
+    <h2 id="h-rule">きまり</h2>
+    <div class="lv" role="group" aria-label="きまり"><button id="rl-b" aria-pressed="${s.rule !== "adv"}">基本</button><button id="rl-a" aria-pressed="${s.rule === "adv"}">上級</button></div>
+    <p class="note">${s.rule === "adv" ? "上級：大通り・行事の札・増築・秘密の目標が入ります。新しく始める回から変わります。" : "基本：店を置いて客を呼ぶ、いちばん短いきまり。慣れたら上級もどうぞ。"}</p>
+  </section>
   <section class="box" aria-labelledby="h-two">
     <h2 id="h-two">2人で対戦</h2>
     <p class="note">1台を順番に回して遊びます。</p>
-    ${vRun ? `<button class="main big" id="go-vc">2人対戦の続きから（${vRun.moves.length ? Y.replay(vRun.seed, vRun.moves).day : 1}日目）</button>` : ""}
+    ${vRun ? `<button class="main big" id="go-vc">2人対戦の続きから（${vRun.moves.length ? Y.replay(vRun.seed, vRun.moves, { adv: !!vRun.adv }).day : 1}日目）</button>` : ""}
     <button class="${vRun ? "" : "main "}big" id="go-v">新しく2人で対戦</button>
   </section>
   <section class="box" aria-labelledby="h-one">
     <h2 id="h-one">1人で（となりの店主と）</h2>
     <div class="lv" role="group" aria-label="店主の強さ"><span class="note">店主の強さ</span>
       <button id="lv-e" aria-pressed="${s.lv === "easy"}">やさしい</button><button id="lv-n" aria-pressed="${s.lv !== "easy"}">ふつう</button></div>
-    ${td ? `<p>今日の盤：${td.w ? "★勝ち" : "○遊んだ"}（${td.s}💰 対 ${td.o}💰）。また明日。練習は何回でも遊べます。</p>` : `<button class="main big" id="go-d">${dRun ? "今日の盤の続きから" : "今日の盤"}</button><p class="note">今日の盤（店札の順）はだれでも同じ。1日1回です。</p>`}
+    ${td ? `<p>今日の盤：${td.w ? "★勝ち" : "○遊んだ"}（${td.adv ? "上級・" : ""}${td.s}💰 対 ${td.o}💰）。また明日。練習は何回でも遊べます。</p>` : `<button class="main big" id="go-d">${dRun ? "今日の盤の続きから" : "今日の盤"}</button><p class="note">今日の盤（店札の順）はだれでも同じ。1日1回です。</p>`}
     <button class="big" id="go-p">${pRun ? "練習の続きから" : "練習（ちがう盤）"}</button>
     ${aRun ? `<button class="big" id="go-a">あとから（${aRun.date.slice(5).replace("-", "/")}）の続きから</button>` : ""}
   </section>
@@ -387,6 +413,8 @@ function home() {
   bindFooter();
   $("lv-e").onclick = () => { save((x) => { x.lv = "easy"; }); home(); };
   $("lv-n").onclick = () => { save((x) => { x.lv = "normal"; }); home(); };
+  $("rl-b").onclick = () => { save((x) => { x.rule = "basic"; }); home(); };
+  $("rl-a").onclick = () => { save((x) => { x.rule = "adv"; }); home(); };
   $("go-v").onclick = () => start("v", null);
   if (vRun) $("go-vc").onclick = () => resume("v");
   if ($("go-d")) $("go-d").onclick = () => (dRun ? resume("d") : start("d", t));
@@ -401,12 +429,12 @@ function start(mode, date) {
   const s = load();
   if (mode === "d" && s.days[date]) return home(); // 別のタブで今日の盤を終えていたら、もう一度は始めない
   const seed = date ? Y.seedOfDate(date) : (Math.random() * 4294967296) >>> 0;
-  const run = { mode, date: date || todayKey(), seed, lv: mode === "v" ? null : s.lv === "easy" ? "easy" : "normal", moves: [], id: Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36) };
+  const run = { mode, date: date || todayKey(), seed, lv: mode === "v" ? null : s.lv === "easy" ? "easy" : "normal", adv: s.rule === "adv", moves: [], id: Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36) };
   save((x) => { x.runs[mode] = run; });
   open(mode, run);
 }
 function resume(mode) { const r = load().runs[mode]; if (!r) return home(); open(mode, r); }
-function open(mode, run) { gen++; MODE = mode; RUN = run; G = Y.replay(run.seed, run.moves); sel = null; note = run.moves.length ? "続きからです。" : "市場の店札を1枚選んでください。"; draw(); next(); }
+function open(mode, run) { gen++; MODE = mode; RUN = run; G = Y.replay(run.seed, run.moves, { adv: !!run.adv }); sel = null; peek = false; note = run.moves.length ? "続きからです。" : "市場の店札を1枚選んでください。"; draw(); next(); }
 
 // 手を1つ進める。保存した途中経過が画面と同じゲーム・同じ手数かを先に確かめる（古いタブで二重に進めない）
 function act(mv) {
@@ -425,9 +453,10 @@ function act(mv) {
 }
 function say(who, mv) {
   const nm = names(MODE)[who], L = G.log;
-  let t = mv.a === "pick" ? `${nm}は${S[L.filter((l) => l.a === "pick").pop().t].e}${S[L.filter((l) => l.a === "pick").pop().t].nm}を置きました。` : mv.a === "pass" ? `${nm}は店番をしました（+1💰）。` : mv.a === "borrow" ? `${nm}は5💰借りました。` : `${nm}は5💰返しました。`;
+  const lp = L.filter((l) => l.a === "pick" || l.a === "up").pop();
+  let t = mv.a === "pick" ? `${nm}は${S[lp.t].e}${S[lp.t].nm}を置きました。` : mv.a === "up" ? `${nm}は${S[lp.t].e}${S[lp.t].nm}を2階建てにしました。` : mv.a === "pass" ? `${nm}は店番をしました（+1💰）。` : mv.a === "borrow" ? `${nm}は5💰借りました。` : `${nm}は5💰返しました。`;
   const d = L[L.length - 1];
-  if (d && d.a === "day") t += ` ${d.day}日目のおわり：${["a", "b"].map((o) => `${names(MODE)[o]} +${d.inc[o]}${d.it[o] ? `（利息 −${d.it[o]}）` : ""}`).join("、")}。`;
+  if (d && d.a === "day") t += ` ${d.day}日目のおわり${d.ev ? `（${Y.EVENTS[d.ev].e}${Y.EVENTS[d.ev].nm}）` : ""}：${["a", "b"].map((o) => `${names(MODE)[o]} +${d.inc[o]}${d.it[o] ? `（利息 −${d.it[o]}）` : ""}`).join("、")}。`;
   return t;
 }
 const aiTurn = () => G && !G.over && MODE !== "v" && G.turn === "b";
@@ -446,10 +475,11 @@ function finish() {
     s.st.games++;
     if (MODE === "v") s.st.two++;
     else {
-      if (w) { s.st.wins++; if (RUN.lv === "normal") s.st.nwins++; if (G.p.a.borrowed === 0) s.st.nob++; else if (G.p.a.loans === 0) s.st.lwin++; }
+      if (G.adv && G.goals.a.every((k) => { const [h, n] = Y.goalProg(G, "a", k); return h >= n; })) s.st.goals++;
+      if (w) { s.st.wins++; if (G.adv) s.st.awins++; if (RUN.lv === "normal") s.st.nwins++; if (G.p.a.borrowed === 0) s.st.nob++; else if (G.p.a.loans === 0) s.st.lwin++; }
       s.st.maxInc = Math.max(s.st.maxInc, ...G.p.a.inc); if (kinds === 5) s.st.all5++; if (a >= 100) s.st.rich++;
-      if (MODE === "d" && !s.days[RUN.date]) s.days[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv };
-      if (MODE === "a" && !s.adays[RUN.date] && !s.days[RUN.date]) s.adays[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv };
+      if (MODE === "d" && !s.days[RUN.date]) s.days[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv, adv: G.adv ? 1 : 0 };
+      if (MODE === "a" && !s.adays[RUN.date] && !s.days[RUN.date]) s.adays[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv, adv: G.adv ? 1 : 0 };
     }
   });
 }
@@ -457,18 +487,38 @@ function finish() {
 function draw() {
   const nm = names(MODE), human = !G.over && (MODE === "v" || G.turn === "a"), me = G.turn ? G.p[G.turn] : null;
   const title = MODE === "d" ? "今日の盤" : MODE === "a" ? `あとから（${RUN.date.slice(5).replace("-", "/")}）` : MODE === "p" ? "練習" : "2人対戦";
-  const selT = sel !== null ? G.market[sel] : null;
-  const who = (o) => `<div class="who ${o}${G.turn === o ? " now" : ""}"><b>${nm[o]}${G.turn === o ? "の番" : ""}</b><span class="n">💰${G.p[o].money}　借り${G.p[o].loans}　客/日 ${Y.income(G.board, o)}</span></div>`;
+  const adv = G.adv, selT = sel !== null && sel !== "up" ? G.market[sel] : null, upMode = sel === "up" && human;
+  const who = (o) => `<div class="who ${o}${G.turn === o ? " now" : ""}"><b>${nm[o]}${G.turn === o ? "の番" : ""}</b><span class="n">💰${G.p[o].money}　借り${G.p[o].loans}　客/日 ${Y.income(G.board, o, adv)}</span></div>`;
+  const canUp = (i) => { const c = G.board[i]; return human && adv && c && c.o === G.turn && c.t !== "ie" && !c.up && me.money >= Y.upCost(G.board, i); };
+  // 行事の札：今日とその先2日分
+  const evs = adv ? `<div class="evs" role="group" aria-label="行事の札">${[0, 1, 2].map((k) => G.day + k).filter((d) => d <= Y.DAYS && !(G.over && d > G.day)).map((d, k) => { const e = Y.EVENTS[Y.evOf(G, d)]; return `<div class="ev${k === 0 ? " now" : ""}"><span class="w">${k === 0 ? (G.over ? `${d}日目` : "今日") : k === 1 ? "明日" : "あさって"}</span><span><span aria-hidden="true">${e.e}</span><b>${e.nm}</b></span><span class="t">${e.txt}</span></div>`; }).join("")}</div>` : "";
+  // 秘密の目標：1人用は自分の分、2人対戦は今の番の人が「見る」を押したときだけ。おわったら両方
+  const goalList = (o) => `<ul class="goals">${G.goals[o].map((k) => { const g = Y.GOALS[k], [h, n] = Y.goalProg(G, o, k), ok = h >= n; return `<li><span aria-hidden="true">${g.e}</span><span><b>${g.nm}</b>（${g.pt}点）${g.txt}<span class="pr">${ok ? "✓ 満たした" : `いま ${h}/${n}`}</span></span></li>`; }).join("")}</ul>`;
+  let goals = "";
+  if (adv && G.over) goals = `<section class="box"><h2>秘密の目標</h2>${["a", "b"].map((o) => `<h3>${nm[o]}（+${Y.goalPts(G, o)}点）</h3>${goalList(o)}`).join("")}</section>`;
+  else if (adv && MODE !== "v") goals = `<details class="box" open><summary>あなたの秘密の目標（店主のは、おわるまで見えません）</summary>${goalList("a")}</details>`;
+  else if (adv) goals = `<section class="box"><div class="row" style="justify-content:space-between;align-items:center"><b>秘密の目標</b><button id="peek" aria-pressed="${peek}">${peek ? "かくす" : `${nm[G.turn]}の目標を見る`}</button></div>${peek ? goalList(G.turn) : `<p class="note">相手に見えないようにしてから押してください。番が替わると自動でかくれます。</p>`}</section>`;
   const cards = G.market.map((t, m) => {
     if (!t) return `<button class="card gone" disabled aria-hidden="true" tabindex="-1"></button>`;
     const short = me && S[t].c > me.money;
-    return `<button class="card" data-m="${m}" aria-pressed="${sel === m}" ${!human || short ? "disabled" : ""} aria-label="${S[t].nm}、${S[t].c}💰${short ? "、お金が足りない" : ""}"><span class="e" aria-hidden="true">${S[t].e}</span><span class="nm">${S[t].nm}</span><span class="c">${S[t].c}💰${short ? "・足りない" : ""}</span></button>`;
+    return `<button class="card" data-m="${m}" aria-pressed="${sel === m}" ${!human || short ? "disabled" : ""} aria-label="${S[t].nm}、${S[t].c}💰${adv ? "（大通りは+1）" : ""}${short ? "、お金が足りない" : ""}"><span class="e" aria-hidden="true">${S[t].e}</span><span class="nm">${S[t].nm}</span><span class="c">${S[t].c}💰${short ? "・足りない" : ""}</span></button>`;
   }).join("");
   const cells = G.board.map((c, i) => {
-    if (c) { const cu = Y.cust(G.board, i); return `<button class="cell ${c.o}${i === G.last ? " last" : ""}" disabled aria-label="${nm[c.o]}の${S[c.t].nm}${c.t === "ie" ? "" : `、客${cu}`}"><span class="mk" aria-hidden="true">${c.o === "a" ? "●" : "◆"}</span><span class="e" aria-hidden="true">${S[c.t].e}</span>${c.t === "ie" ? "" : `<span class="cu" aria-hidden="true">${cu}</span>`}</button>`; }
-    if (selT && human) { const d = Y.delta(G.board, selT, i, G.turn); return `<button class="cell can" data-i="${i}" aria-label="ここに置く。客/日 +${d.me}${d.op ? `、相手 ${d.op}` : ""}"><span class="pv" aria-hidden="true"><span class="p">+${d.me}</span>${d.op ? `<br><span class="m">相手${d.op > 0 ? "+" : ""}${d.op}</span>` : ""}</span></button>`; }
-    return `<button class="cell" disabled aria-label="空き地"></button>`;
+    const mainC = adv && Y.MAIN.includes(i) ? " ave" : "", mainL = mainC ? "大通りの" : "";
+    if (c) {
+      const cu = Y.cust(G.board, i, adv), ups = c.up ? "（2階建て）" : "", inner = `<span class="mk" aria-hidden="true">${c.o === "a" ? "●" : "◆"}</span><span class="e" aria-hidden="true">${S[c.t].e}</span>${c.up ? `<span class="up" aria-hidden="true">2F</span>` : ""}${c.t === "ie" ? "" : `<span class="cu" aria-hidden="true">${cu}</span>`}`;
+      if (upMode && canUp(i)) return `<button class="cell ${c.o} can${mainC}" data-up="${i}" aria-label="${mainL}${nm[c.o]}の${S[c.t].nm}、客${cu}。2階建てにする、${Y.upCost(G.board, i)}💰、客+${Y.UP_ADD}">${inner}<span class="pv up2" aria-hidden="true">${Y.upCost(G.board, i)}💰</span></button>`;
+      return `<button class="cell ${c.o}${i === G.last ? " last" : ""}${mainC}" disabled aria-label="${mainL}${nm[c.o]}の${S[c.t].nm}${ups}${c.t === "ie" ? "" : `、客${cu}`}">${inner}</button>`;
+    }
+    if (selT && human) {
+      const cost = Y.costAt(selT, i, adv);
+      if (cost > me.money) return `<button class="cell${mainC}" disabled aria-label="${mainL}空き地、${cost}💰で足りない"><span class="pv" aria-hidden="true"><span class="m">${cost}💰</span></span></button>`;
+      const d = Y.delta(G.board, selT, i, G.turn, adv);
+      return `<button class="cell can${mainC}" data-i="${i}" aria-label="${mainL}ここに置く${cost !== S[selT].c ? `、${cost}💰` : ""}。客/日 +${d.me}${d.op ? `、相手 ${d.op}` : ""}"><span class="pv" aria-hidden="true"><span class="p">+${d.me}</span>${d.op ? `<br><span class="m">相手${d.op > 0 ? "+" : ""}${d.op}</span>` : ""}${cost !== S[selT].c ? `<br><span class="m">${cost}💰</span>` : ""}</span></button>`;
+    }
+    return `<button class="cell${mainC}" disabled aria-label="${mainL}空き地"></button>`;
   }).join("");
+  const anyUp = adv && G.board.some((c, i) => canUp(i));
   let end = "";
   if (G.over) {
     const a = Y.score(G, "a"), b = Y.score(G, "b"), w = Y.winner(G), s = load();
@@ -480,7 +530,7 @@ function draw() {
     if (showKofi) save((x) => { x.kofi[RUN.date] = 1; });
     end = `<section class="box end" aria-labelledby="h-end"><h2 id="h-end" class="res" tabindex="-1">${res}</h2>
       <p style="text-align:center">${nm.a} ${a}💰 ／ ${nm.b} ${b}💰</p>
-      <p class="note">お金から、返していない借り×5を引いた数です。利息で払った合計：${nm.a} ${G.p.a.interest}💰・${nm.b} ${G.p.b.interest}💰。借りたら、早めに返すほど利息は少なくなります。</p>
+      <p class="note">お金から、返していない借り×5を引いた数です${adv ? "（上級では、満たした目標の点も足します）" : ""}。利息で払った合計：${nm.a} ${G.p.a.interest}💰・${nm.b} ${G.p.b.interest}💰。借りたら、早めに返すほど利息は少なくなります。</p>
       ${newA.length ? `<p>🏅 実績：${newA.map((x) => x[1]).join("・")}</p>` : ""}
       ${near && MODE !== "v" ? `<p class="note">あと少しの実績：${near[1]}（${near[2]}・いま ${near[3](s)}/${near[4]}）</p>` : ""}
       <div class="row"><button class="main" id="again">${MODE === "v" ? "もう一度2人で" : "練習でもう一度"}</button><button id="home2">ホームへ</button></div>
@@ -490,21 +540,26 @@ function draw() {
   $("app").innerHTML = `
   <div class="row" style="justify-content:space-between;align-items:center"><button id="back">← ホーム</button><span class="note">${title}${RUN.lv ? `・店主 ${RUN.lv === "easy" ? "やさしい" : "ふつう"}` : ""}</span></div>
   <div class="bar">${who("a")}${who("b")}</div>
-  <p class="turn">${G.over ? "おしまい" : `${G.day} / ${Y.DAYS}日目　${nm[G.turn]}の番${human ? "" : "…"}`}</p>
+  <p class="turn">${G.over ? "おしまい" : `${G.day} / ${Y.DAYS}日目　${nm[G.turn]}の番${human ? "" : "…"}`}${adv ? "　<span class=\"tag\">上級</span>" : ""}</p>
+  ${evs}
   <div class="market" role="group" aria-label="市場の店札">${cards}</div>
   <p class="live" id="live" role="status" aria-live="polite">${note}</p>
   <div class="board" role="group" aria-label="通り（5×5）">${cells}</div>
-  <div class="row"><button id="borrow" ${human && me.loans < Y.MAX_LOANS ? "" : "disabled"}>借りる +5💰</button><button id="repay" ${human && me.loans > 0 && me.money >= Y.LOAN ? "" : "disabled"}>返す −5💰</button><button id="pass" ${human ? "" : "disabled"}>店番する +1💰</button></div>
+  <div class="row"><button id="borrow" ${human && me.loans < Y.MAX_LOANS ? "" : "disabled"}>借りる +5💰</button><button id="repay" ${human && me.loans > 0 && me.money >= Y.LOAN ? "" : "disabled"}>返す −5💰</button>${adv ? `<button id="up" aria-pressed="${upMode}" ${anyUp ? "" : "disabled"}>${upMode ? "増築をやめる" : "増築する"}</button>` : ""}<button id="pass" ${human ? "" : "disabled"}>店番する +1💰</button></div>
+  ${goals}
   ${end}
   <details class="box"><summary>お店のはたらき</summary>${rulesHtml()}</details>
   ${footer()}`;
   bindFooter();
   $("back").onclick = home;
-  document.querySelectorAll(".card[data-m]").forEach((b) => (b.onclick = () => { const m = Number(b.dataset.m); sel = sel === m ? null : m; note = sel === null ? "" : `${S[G.market[m]].nm}：空き地の数字は、置いたときの客/日の増え方です。置く所を押してください。`; draw(); }));
-  document.querySelectorAll(".cell[data-i]").forEach((b) => (b.onclick = () => { const m = sel; sel = null; if (act({ a: "pick", m, i: Number(b.dataset.i) })) { draw(); next(); } }));
+  document.querySelectorAll(".card[data-m]").forEach((b) => (b.onclick = () => { const m = Number(b.dataset.m); sel = sel === m ? null : m; peek = false; note = sel === null ? "" : `${S[G.market[m]].nm}：空き地の数字は、置いたときの客/日の増え方です。置く所を押してください。`; draw(); }));
+  document.querySelectorAll(".cell[data-i]").forEach((b) => (b.onclick = () => { const m = sel; sel = null; peek = false; if (act({ a: "pick", m, i: Number(b.dataset.i) })) { draw(); next(); } }));
+  document.querySelectorAll(".cell[data-up]").forEach((b) => (b.onclick = () => { sel = null; peek = false; if (act({ a: "up", i: Number(b.dataset.up) })) { draw(); next(); } }));
+  if ($("up")) $("up").onclick = () => { sel = sel === "up" ? null : "up"; note = sel ? `2階建てにする自分の店を押してください（その店の値段で、客 +${Y.UP_ADD}）。` : ""; draw(); };
+  if ($("peek")) $("peek").onclick = () => { peek = !peek; draw(); };
   $("borrow").onclick = () => { if (act({ a: "borrow" })) { note += " 返すまで、毎日 利息1💰。"; draw(); } };
   $("repay").onclick = () => { if (act({ a: "repay" })) draw(); };
-  $("pass").onclick = () => { sel = null; if (act({ a: "pass" })) { draw(); next(); } };
+  $("pass").onclick = () => { sel = null; peek = false; if (act({ a: "pass" })) { draw(); next(); } };
   if ($("again")) $("again").onclick = () => start(MODE === "v" ? "v" : "p", null);
   if ($("home2")) $("home2").onclick = home;
   if (G.over && $("h-end")) { $("h-end").focus({ preventScroll: true }); $("h-end").scrollIntoView({ block: "center" }); } // おわったら結果を見せる

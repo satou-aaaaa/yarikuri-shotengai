@@ -1,9 +1,9 @@
 # やりくり商店街
 
-お店を並べて客を呼ぶ、2人対戦のボードゲーム。
+お店を並べて客を呼ぶ、2人対戦のボードゲーム。慣れたら「上級ルール」（大通り・行事の札・増築・秘密の目標）に切り替えられます。
 
 - 遊ぶ: <https://satou-aaaaa.github.io/yarikuri-shotengai/>
-- 印刷して紙で遊ぶ: <https://satou-aaaaa.github.io/yarikuri-shotengai/print.html> （A4で5枚・はさみだけで作れます）
+- 印刷して紙で遊ぶ: <https://satou-aaaaa.github.io/yarikuri-shotengai/print.html> （A4で7枚。基本ルールだけなら5枚。はさみだけで作れます）
 
 ## 出どころ
 

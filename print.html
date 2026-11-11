@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'">
 <title>やりくり商店街（印刷して遊ぶ）</title>
-<meta name="description" content="やりくり商店街を紙で遊ぶための印刷用の盤・店札・お金・説明書（A4で5枚）。">
+<meta name="description" content="やりくり商店街を紙で遊ぶための印刷用の盤・店札・お金・説明書（A4で7枚）。">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <!-- 店の絵は商用で使える Noto Color Emoji にそろえる（端末の絵文字は売り物に使えないものがある）。text= で使う字だけを読む -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&text=%F0%9F%A5%95%F0%9F%8D%9E%E2%98%95%F0%9F%93%9A%F0%9F%8F%A0%F0%9F%92%B0%E2%9A%94%E2%9A%A0&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&text=%F0%9F%A5%95%F0%9F%8D%9E%E2%98%95%F0%9F%93%9A%F0%9F%8F%A0%F0%9F%92%B0%E2%9A%94%E2%9A%A0%F0%9F%8C%A4%E2%98%94%F0%9F%92%B4%F0%9F%93%88%F0%9F%93%89%F0%9F%8F%B7%F0%9F%93%96%F0%9F%8C%85%F0%9F%8F%AE%F0%9F%A7%BE%F0%9F%8E%8C%F0%9F%9A%A7%F0%9F%93%90%F0%9F%9B%A3%F0%9F%8F%A2%F0%9F%90%B7&display=swap">
 <style>
 /* 印刷の組み方：A4・片面・100%。中身は 186×250mm の中に収め、レターの紙でも切れないようにする。
    インクを減らすため、地は白・色は線と絵だけ。切る線は細い破線。 */
@@ -64,6 +64,15 @@ th{font-weight:700}
 .mark{border-radius:50%;font-size:16pt;font-weight:900}
 .mark.a{color:var(--a);border:0.8mm solid var(--a)}
 .mark.b{color:var(--b);border:0.8mm dashed var(--b)}
+.board .ave{background:repeating-linear-gradient(135deg,#fff 0 3mm,#e4e8e2 3mm 3.6mm)}
+.mark.up{border:0.6mm solid var(--ink);border-radius:2mm;font-family:var(--display);font-size:10pt}
+.marks.ups{grid-template-columns:repeat(8,14mm);grid-auto-rows:14mm}
+.cards{grid-template-columns:repeat(4,46mm);grid-auto-rows:34mm}
+.card{position:relative}
+.card .e{font-size:16pt;line-height:1.1}
+.card .x{font-size:7pt}
+.card.goal{border-style:solid;border-width:0.5mm;border-color:var(--ink)}
+.card .pt{position:absolute;top:1mm;right:1.5mm;font-size:8pt;font-weight:700}
 .loans{grid-template-columns:repeat(3,58mm);grid-auto-rows:26mm}
 .loan .nm{font-size:11pt}
 @page{size:A4;margin:0}
@@ -78,7 +87,7 @@ th{font-weight:700}
 <body>
 <div class="guide">
   <h1>やりくり商店街を紙で遊ぶ</h1>
-  <p>下の5枚を印刷し、札を線で切れば、2人で遊べます。用意するのは、はさみだけです。</p>
+  <p>下の7枚を印刷し、札を線で切れば、2人で遊べます（基本ルールだけなら1〜5枚目）。用意するのは、はさみだけです。</p>
   <ul>
     <li>紙は A4（レターでも切れません）。片面・カラーでも白黒でも遊べます。</li>
     <li>印刷の大きさは「100%」か「実際のサイズ」にします（店札が盤のマスに乗る大きさです）。</li>
@@ -91,7 +100,7 @@ th{font-weight:700}
 <script>
 "use strict";
 const Y = window.YRK, S = Y.SHOPS;
-const foot = (n) => `<div class="foot"><span>やりくり商店街　https://satou-aaaaa.github.io/yarikuri-shotengai/</span><span>${n} / 5</span></div>`;
+const foot = (n) => `<div class="foot"><span>やりくり商店街　https://satou-aaaaa.github.io/yarikuri-shotengai/</span><span>${n} / @@ALL@@</span></div>`;
 const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1（0より下にはならない）</span></div></div>`;
 // 奥付：売るときに箱・袋・説明書に要る表示（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）
 const colophon = () => `<div class="colophon" aria-label="奥付"><b>対象年齢 8歳以上・2人用・20〜30分</b>　⚠ 小さな部品があります。のみこむおそれがあるので、3歳未満のお子さまには与えないでください。<br>制作：satou-aaaaa　連絡先：https://github.com/satou-aaaaa/yarikuri-shotengai/issues　第1版 2026年<br>店の絵：Noto Color Emoji（Google。フォントは SIL Open Font License 1.1、絵は Apache License 2.0）</div>`;
@@ -141,8 +150,8 @@ pages.push(`<section class="page" aria-label="説明書">
 pages.push(`<section class="page" aria-label="盤">
   <h2>盤（通り）</h2>
   <p class="street">― 商 店 街 ―</p>
-  <div class="board">${Array.from({ length: 25 }, (_, i) => `<div>${String.fromCharCode(65 + (i % 5))}${1 + Math.floor(i / 5)}</div>`).join("")}</div>
-  <p style="text-align:center;font-size:9pt;color:var(--sub)">店札はマスに1枚。となりは上下左右（ななめは数えません）。</p>
+  <div class="board">${Array.from({ length: 25 }, (_, i) => `<div${Y.MAIN.includes(i) ? ' class="ave"' : ""}>${String.fromCharCode(65 + (i % 5))}${1 + Math.floor(i / 5)}${Y.MAIN.includes(i) && i % 5 === 0 ? "　大通り（上級）" : ""}</div>`).join("")}</div>
+  <p style="text-align:center;font-size:9pt;color:var(--sub)">店札はマスに1枚。となりは上下左右（ななめは数えません）。斜線の列は上級ルールの大通り（基本ルールではふつうのマス）。</p>
   ${foot(2)}
 </section>`);
 // 3. 店札
@@ -168,7 +177,49 @@ pages.push(`<section class="page" aria-label="印・借り札・記録表">
   <tbody><tr><th>● 客</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>● 利息</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>◆ 客</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>◆ 利息</th>${days.map(() => "<td></td>").join("")}<td></td></tr></tbody></table>
   ${foot(5)}
 </section>`);
-document.getElementById("sheets").innerHTML = pages.join("");
+// 6. 上級ルール・2階の札
+pages.push(`<section class="page" aria-label="上級ルール">
+  <h2>上級ルール（慣れたら）</h2>
+  <p>基本のきまりに、次の4つを足します。7枚目の札と、下の「2F」の札を切って使います。</p>
+  <div class="two"><div>
+  <h3>大通り</h3>
+  <ul><li>盤のまん中の横の列（斜線のマス）は大通り。ここの店は客 +1、置くときの値段も +1💰（🏠住宅は値段だけ +1。客は0のまま）。</li></ul>
+  <h3>行事の札（12枚）</h3>
+  <ul>
+    <li>じゅんび：よく混ぜて${Y.DAYS}枚を裏のまま横に並べ（のこりは箱へ）、1〜${Y.EV_SEE}枚目を表にします。左から1日目・2日目…の札です。</li>
+    <li>その日の札は、その日の「客を数える」「利息」で使います。</li>
+    <li>日がおわるたびに、次の1枚を表にします（いつも今日とその先2日分が見えます）。</li>
+    <li>税・利息でお金が足りないときは、マイナスのまま続けます（記録表に書いておき、次からの入るお金で埋めます）。</li>
+  </ul>
+  </div><div>
+  <h3>増築（2階建て）</h3>
+  <ul>
+    <li>自分の番に、店札を取るかわりに、自分の店（🏠住宅のぞく）1軒に「2F」の札をのせられます。</li>
+    <li>払うのはその店の値段（大通りでも +1 なし）。その店の客は毎日 +${Y.UP_ADD}。1軒に1回まで。</li>
+    <li>行事の札の「2倍」は、2階の分を足してから2倍にします（客${Y.SHOPS.yasai.base}の八百屋が2階建てなら、大売り出しの日は（${Y.SHOPS.yasai.base}＋${Y.UP_ADD}）×2＝${(Y.SHOPS.yasai.base + Y.UP_ADD) * 2}人）。</li>
+  </ul>
+  <h3>秘密の目標（8枚）</h3>
+  <ul>
+    <li>じゅんび：よく混ぜて、1人2枚ずつ裏のまま取ります。相手に見せません。のこりは箱へ。</li>
+    <li>おわりに、満たしている目標の点を自分のお金に足して比べます。同じなら、最後の日の客（行事の札は入れずに数える）が多いほう。</li>
+  </ul>
+  </div></div>
+  <h3>2Fの札（12枚）</h3>
+  <div class="grid marks ups">${Array.from({ length: 12 }, () => `<div class="t mark up">2F</div>`).join("")}</div>
+  ${foot(6)}
+</section>`);
+// 7. 行事の札・目標の札
+const evCard = (k) => { const e = Y.EVENTS[k]; return `<div class="t card"><span class="e">${e.e}</span><span class="nm">${e.nm}</span><span class="x">${e.txt}</span></div>`; };
+const goalCard = (k) => { const g = Y.GOALS[k]; return `<div class="t card goal"><span class="pt">${g.pt}点</span><span class="e">${g.e}</span><span class="nm">${g.nm}</span><span class="x">${g.txt}</span></div>`; };
+pages.push(`<section class="page" aria-label="行事の札・目標の札">
+  <h2>行事の札（${Y.EV_KEYS.length}枚）</h2>
+  <div class="grid cards">${Y.EV_KEYS.map(evCard).join("")}</div>
+  <h2>秘密の目標（${Y.GOAL_KEYS.length}枚）</h2>
+  <div class="grid cards">${Y.GOAL_KEYS.map(goalCard).join("")}</div>
+  <p style="font-size:8.5pt;color:var(--sub)">「となり合う組」は上下左右。四すみは A1・E1・A5・E5。大通りは A3〜E3。</p>
+  ${foot(7)}
+</section>`);
+document.getElementById("sheets").innerHTML = pages.join("").split("@@ALL@@").join(String(pages.length));
 document.getElementById("print").onclick = () => window.print();
 </script>
 </body>
