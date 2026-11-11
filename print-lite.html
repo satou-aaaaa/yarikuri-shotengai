@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'">
+<title>やりくり商店街（印刷して遊ぶ・切る数の少ない版）</title>
+<meta name="description" content="やりくり商店街を紙で遊ぶための印刷用の盤・店札・説明書・記録表（A4で4枚）。お金は記録表に鉛筆で書くので、切るのは店札30枚だけ。">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<!-- 店の絵は商用で使える Noto Color Emoji にそろえる（端末の絵文字は売り物に使えないものがある）。text= で使う字だけを読む -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&text=%F0%9F%A5%95%F0%9F%8D%9E%E2%98%95%F0%9F%93%9A%F0%9F%8F%A0%F0%9F%92%B0%E2%9A%94%E2%9A%A0&display=swap">
+<style>
+/* 印刷の組み方：A4・片面・100%。中身は 186×250mm の中に収め、レターの紙でも切れないようにする。
+   インクを減らすため、地は白・色は線と絵だけ。切る線は細い破線。 */
+:root{--ink:#1d2a2a;--sub:#4d5b5a;--line:#9aa6a0;--a:#0b6e60;--b:#86306f;--bg:#eef1ea;
+  --display:"Noto Color Emoji","Zen Maru Gothic","Hiragino Maru Gothic ProN","BIZ UDPGothic",system-ui,sans-serif;--body:"Noto Color Emoji","Hiragino Sans","BIZ UDPGothic","Noto Sans JP",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.55;padding:12px max(16px,env(safe-area-inset-left,0px))}
+.guide{max-width:640px;margin:0 auto 16px;display:flex;flex-direction:column;gap:8px}
+.guide h1{font-family:var(--display);font-size:1.5rem;margin:0}
+.guide p,.guide ul{margin:0}
+.guide ul{padding-left:1.2em}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btns a,.btns button{font:inherit;font-family:var(--display);font-weight:700;border:2px solid var(--ink);border-radius:999px;background:#fff;color:var(--ink);padding:8px 16px;min-height:44px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btns button{background:var(--ink);color:#fff}
+:is(button,a):focus-visible{outline:3px solid #b4471a!important;outline-offset:2px!important}
+.sheets{overflow-x:auto}
+.page{width:210mm;height:297mm;overflow:hidden;margin:0 auto 12px;background:#fff;padding:18mm 12mm;box-shadow:0 1px 4px #0003;display:flex;flex-direction:column;gap:4mm;font-size:10pt}
+.page h2{font-family:var(--display);font-size:16pt;margin:0}
+.page h3{font-family:var(--display);font-size:11.5pt;margin:2mm 0 0}
+.page p,.page ol,.page ul{margin:0}
+.page ol,.page ul{padding-left:1.3em;display:grid;gap:1mm}
+.colophon{border-top:0.3mm solid var(--line);padding-top:2mm;font-size:7.5pt;color:var(--sub);line-height:1.45}
+.colophon b{color:var(--ink)}
+.foot{margin-top:auto;font-size:8pt;color:var(--sub);display:flex;justify-content:space-between}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+.ref{border:0.4mm solid var(--ink);border-radius:3mm;padding:3mm;display:grid;gap:1.2mm;font-size:9pt}
+.ref div{display:grid;grid-template-columns:7mm 1fr;gap:1mm}
+table{border-collapse:collapse;width:100%;font-size:9pt}
+th,td{border:0.3mm solid var(--line);padding:1mm 1.5mm;text-align:center;height:7mm}
+th{font-weight:700}
+/* 盤：36mm × 5 */
+.board{display:grid;grid-template-columns:repeat(5,36mm);grid-template-rows:repeat(5,36mm);border:0.8mm solid var(--ink);width:max-content;margin:0 auto}
+.board div{border:0.3mm solid var(--line);display:flex;align-items:flex-end;justify-content:flex-start;padding:1mm;font-size:7pt;color:var(--sub)}
+.street{text-align:center;font-family:var(--display);font-size:11pt;letter-spacing:.3em}
+/* 札：切って使う。店札 34mm 角（盤のマスに乗る）・お金 30mm 角・印 20mm 丸 */
+.grid{display:grid;justify-content:center}
+.tiles{grid-template-columns:repeat(5,34mm);grid-auto-rows:34mm}
+.coins{grid-template-columns:repeat(6,28mm);grid-auto-rows:28mm}
+.t{border:0.3mm dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.5mm;padding:1.5mm;overflow:hidden}
+.t .e{font-size:20pt;line-height:1.1}
+.t .nm{font-family:var(--display);font-weight:900;font-size:10pt}
+.t .x{font-size:6.6pt;line-height:1.3;color:var(--sub)}
+.t .c{position:absolute}
+.tile{position:relative}
+.tile .cost{position:absolute;top:1mm;left:1.5mm;font-size:8pt;font-weight:700}
+.tile .base{position:absolute;top:1mm;right:1.5mm;font-size:8pt;font-weight:700}
+.coin .v{font-family:var(--display);font-weight:900;font-size:18pt}
+.coin.five .v{font-size:22pt}
+.coin.five{border-style:solid;border-width:0.6mm;border-color:var(--ink)}
+.marks{grid-template-columns:repeat(8,22mm);grid-auto-rows:22mm}
+.mark{border-radius:50%;font-size:16pt;font-weight:900}
+.mark.a{color:var(--a);border:0.8mm solid var(--a)}
+.mark.b{color:var(--b);border:0.8mm dashed var(--b)}
+.loans{grid-template-columns:repeat(3,58mm);grid-auto-rows:26mm}
+.loan .nm{font-size:11pt}
+/* 切る数の少ない版：店札の上と下のふちに ● と ◆。盤の下側（● の人の側）に来た印が持ち主（印の札は使わない） */
+.own{position:absolute;left:0;right:0;height:4.2mm;display:flex;align-items:center;justify-content:center;font-size:7pt;font-weight:900;letter-spacing:.2em}
+.own.a{bottom:0;color:var(--a);border-top:0.4mm solid var(--a)}
+.own.b{top:0;color:var(--b);border-bottom:0.4mm dashed var(--b);transform:rotate(180deg)}
+.tile.lite .cost,.tile.lite .base{top:5mm}
+.tile.lite .e{font-size:16pt}
+.money th,.money td{height:7.4mm;padding:0.5mm 1mm;font-size:8.5pt}
+.money th:first-child{width:12mm}
+.money .left{background:#f4f6f1;font-weight:700}
+@page{size:A4;margin:0}
+@media print{
+  body{background:#fff;padding:0}
+  .guide{display:none}
+  .page{margin:0;box-shadow:none;break-after:page;page-break-after:always}
+  .page:last-child{break-after:auto;page-break-after:auto}
+}
+</style>
+</head>
+<body>
+<div class="guide">
+  <h1>やりくり商店街を紙で遊ぶ（切る数の少ない版）</h1>
+  <p>下の4枚を印刷し、店札30枚を線で切れば、2人で遊べます。お金と借りた数は記録表に鉛筆で書くので、お金の札・印・借り札は要りません。用意するのは、はさみと鉛筆2本・消しゴムです。</p>
+  <ul>
+    <li>紙は A4（レターでも切れません）。片面・カラーでも白黒でも遊べます。</li>
+    <li>印刷の大きさは「100%」か「実際のサイズ」にします（店札が盤のマスに乗る大きさです）。</li>
+    <li>厚紙に印刷すると、札がめくりやすくなります。記録表は鉛筆で書ける紙（ふつうの紙・マット紙）にします。</li>
+  </ul>
+  <div class="btns"><button id="print" type="button">印刷する</button><a href="print.html">お金の札のある版（5枚）</a><a href="./">ゲームにもどる</a></div>
+</div>
+<div class="sheets" id="sheets"></div>
+<script src="rules.js"></script>
+<script>
+"use strict";
+const Y = window.YRK, S = Y.SHOPS, NP = 4;
+const foot = (n) => `<div class="foot"><span>やりくり商店街（切る数の少ない版）　https://satou-aaaaa.github.io/yarikuri-shotengai/</span><span>${n} / ${NP}</span></div>`;
+const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1（0より下にはならない）</span></div></div>`;
+// 奥付：売るときに箱・袋・説明書に要る表示（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）
+const colophon = () => `<div class="colophon" aria-label="奥付"><b>対象年齢 8歳以上・2人用・20〜30分</b>　⚠ 小さな部品があります。のみこむおそれがあるので、3歳未満のお子さまには与えないでください。<br>制作：satou-aaaaa　連絡先：https://github.com/satou-aaaaa/yarikuri-shotengai/issues　第1版 2026年<br>店の絵：Noto Color Emoji（Google。フォントは SIL Open Font License 1.1、絵は Apache License 2.0）</div>`;
+const days = Array.from({ length: Y.DAYS }, (_, i) => i + 1);
+const pages = [];
+// 1. 説明書
+pages.push(`<section class="page" aria-label="説明書">
+  <h2>やりくり商店街　説明書</h2>
+  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、${Y.DAYS}日目のおわりにお金が多いほうの勝ちです。お金は記録表に鉛筆で書きます。</p>
+  <div class="two"><div>
+  <h3>じゅんび</h3>
+  <ol>
+    <li>盤をまん中に置き、●の人は「5」の列の側、◆の人は「1」の列の側にすわります。</li>
+    <li>店札${Y.KINDS.length * Y.PER_KIND}枚を裏にしてよく混ぜ、山にします。</li>
+    <li>記録表の「はじめ」の「のこり」に、2人とも${Y.START}と書きます。</li>
+    <li>●の人が1日目に先に取ります。</li>
+  </ol>
+  <h3>1日のながれ</h3>
+  <ol>
+    <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
+    <li><b>取る</b>：先の人から1人1枚ずつ、店札を取って値段を「買う」に書き、盤の空き地に置きます。<b>自分の印（● か ◆）を盤の下側（● の人の側）に向けて</b>置きます。盤の下側（● の人の側）のふちにある印が、その店の持ち主です。取らずに「店番」をして1💰もらってもかまいません。</li>
+    <li><b>のこり</b>：だれも取らなかった店札は箱にもどします。</li>
+    <li><b>客を数える</b>：自分の店それぞれの客を数え、合計を「客」に書きます。</li>
+    <li><b>利息</b>：借りている数×1💰を「利息」に書き、「のこり」を計算して書きます。</li>
+    <li>次の日は、先に取る人が交代します。</li>
+  </ol></div><div>
+  <h3>借りる・返す</h3>
+  <ul>
+    <li>自分の番に、いつでも${Y.LOAN}💰を借りられます。「借りる」に${Y.LOAN}を書き、「借り」の数を1ふやします（1人${Y.MAX_LOANS}つまで）。</li>
+    <li>自分の番に、${Y.LOAN}💰を払えば1つ返せます。「返す」に${Y.LOAN}を書き、「借り」を1へらします。</li>
+    <li>返すまで、毎日 利息がかかります。早めに返すほど得です。</li>
+  </ul>
+  <h3>お金の書き方</h3>
+  <p>のこり ＝ 前の日ののこり − 買う ＋ 店番 ＋ 借りる − 返す ＋ 客 − 利息。のこりより高い店は買えません（先に借りれば買えます）。</p>
+  <h3>おわり</h3>
+  <ul>
+    <li>${Y.DAYS}日目の「利息」までやったらおしまい。</li>
+    <li>のこり − 借り×${Y.LOAN} が多いほうの勝ち。同じなら、最後の日の客が多いほう。</li>
+  </ul>
+  </div></div>
+  ${ref()}
+  ${colophon()}
+  ${foot(1)}
+</section>`);
+// 2. 盤
+pages.push(`<section class="page" aria-label="盤">
+  <h2>盤（通り）</h2>
+  <p class="street">◆ の人はこちら</p>
+  <div class="board">${Array.from({ length: 25 }, (_, i) => `<div>${String.fromCharCode(65 + (i % 5))}${1 + Math.floor(i / 5)}</div>`).join("")}</div>
+  <p class="street">● の人はこちら（店札は、持ち主の印をこちらに向けて置く）</p>
+  <p style="text-align:center;font-size:9pt;color:var(--sub)">店札はマスに1枚。持ち主の印を下側（● の人の側）に向けて置く。となりは上下左右（ななめは数えません）。</p>
+  ${foot(2)}
+</section>`);
+// 3. 店札（上と下のふちに印。印の札は使わない）
+pages.push(`<section class="page" aria-label="店札">
+  <h2>店札（${Y.KINDS.length}種類×${Y.PER_KIND}枚）</h2>
+  <div class="grid tiles">${Y.KINDS.flatMap((k) => Array.from({ length: Y.PER_KIND }, () => `<div class="t tile lite"><span class="own b">◆</span><span class="cost">${S[k].c}💰</span><span class="base">客${S[k].base}</span><span class="e">${S[k].e}</span><span class="nm">${S[k].nm}</span><span class="x">${S[k].txt}</span><span class="own a">●</span></div>`)).join("")}</div>
+  <p style="font-size:8.5pt;color:var(--sub)">上と下のふちに ● と ◆ があります。盤の下側（● の人の側）のふちにある印が、その店の持ち主です。◆ の人の店は、● の人から見て逆さまになります。</p>
+  ${foot(3)}
+</section>`);
+// 4. 記録表（お金は鉛筆で書く）
+const sheet = (o) => `<h3>${o} の人</h3><table class="money"><thead><tr><th>日</th><th>買う −</th><th>店番 ＋</th><th>借りる ＋</th><th>返す −</th><th>客 ＋</th><th>利息 −</th><th>のこり</th><th>借り</th></tr></thead>
+  <tbody><tr><th>はじめ</th><td></td><td></td><td></td><td></td><td></td><td></td><td class="left">${Y.START}</td><td>0</td></tr>${days.map((d) => `<tr><th>${d}</th><td></td><td></td><td></td><td></td><td></td><td></td><td class="left"></td><td></td></tr>`).join("")}</tbody></table>`;
+pages.push(`<section class="page" aria-label="記録表">
+  <h2>記録表（お金は鉛筆で書く）</h2>
+  ${sheet("●")}
+  ${sheet("◆")}
+  <p style="font-size:8.5pt;color:var(--sub)">何回も遊ぶときは、この紙をコピーして使います。おわり：のこり − 借り×${Y.LOAN}</p>
+  ${foot(4)}
+</section>`);
+document.getElementById("sheets").innerHTML = pages.join("");
+document.getElementById("print").onclick = () => window.print();
+</script>
+</body>
+</html>
