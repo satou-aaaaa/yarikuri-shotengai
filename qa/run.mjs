@@ -115,7 +115,7 @@ const KEY = "yrk-v1";
     const r = play(N, N, s * 7919);
     if (r.bad) { bad = r.bad; break; }
     if (!r.x.over) loop++;
-    if (s <= 100 && JSON.stringify(Y.replay(s * 7919, r.mv, A).p) !== JSON.stringify(r.x.p)) rep = false;
+    if (s <= 100) { const y = Y.replay(s * 7919, r.mv, A), pick = (g) => JSON.stringify([g.p, g.board, g.events, g.goals, Y.score(g, "a"), Y.score(g, "b")]); if (pick(y) !== pick(r.x)) rep = false; }
     const w = Y.winner(r.x); if (w === "a") an++; else if (w === "b") bn++;
     ups += r.mv.filter((m) => m.a === "up").length;
     for (const o of ["a", "b"]) for (const k of r.x.goals[o]) { const [h, n] = Y.goalProg(r.x, o, k); if (h >= n) goals.add(k); }
@@ -140,9 +140,9 @@ const print = readFileSync(path.join(root, "print.html"), "utf8"), lite = readFi
   {
     // 説明書（印刷・画面）の細かいところが rules.js の計算と同じか（2026-11-11 CodeRabbit #4：住宅・2倍の順・同点・マイナス）
     const B = Array(Y.N * Y.N).fill(null), m = Y.MAIN[0]; B[m] = { t: "ie", o: "a" }; B[0] = { t: "yasai", o: "a", up: true };
-    const twice = (Y.SHOPS.yasai.base + Y.UP_ADD) * 2, ex = `（1＋${Y.UP_ADD}）×2＝${(1 + Y.UP_ADD) * 2}人`;
+    const twice = (Y.SHOPS.yasai.base + Y.UP_ADD) * 2, ex = `（${Y.SHOPS.yasai.base}＋${Y.UP_ADD}）×2＝${twice}人`;
     check("上級：大通りの住宅は値段だけ +1・客は0（説明書と画面の文も同じ）", Y.cust(B, m, true) === 0 && Y.costAt("ie", m, true) === Y.SHOPS.ie.c + 1 && print.includes("🏠住宅は値段だけ +1。客は0のまま") && html.includes("住宅は値段だけ"));
-    check("上級：2倍の行事は2階の分を足してから2倍（説明書の例も同じ計算）", Y.custEv(B, 0, "sale") === twice && print.includes("2階の分を足してから2倍") && print.includes("${(1 + Y.UP_ADD) * 2}人") && html.includes("足してから2倍"), ex);
+    check("上級：2倍の行事は2階の分を足してから2倍（説明書の例も同じ計算）", Y.custEv(B, 0, "sale") === twice && print.includes("2階の分を足してから2倍") && print.includes("${(Y.SHOPS.yasai.base + Y.UP_ADD) * 2}人") && print.includes("客${Y.SHOPS.yasai.base}の八百屋") && html.includes("足してから2倍"), ex);
     check("上級：同点のときは行事の札を入れない客で比べる（説明書と画面に書く）", /function winner[^}]*income\(g\.board, "a", g\.adv\)/.test(readFileSync(path.join(root, "rules.js"), "utf8")) && print.includes("行事の札は入れずに数える") && html.includes("行事の札は入れない"));
     check("上級：お金が足りないときはマイナスのまま続く（説明書に書く）", print.includes("マイナスのまま続けます"));
   }
