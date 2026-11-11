@@ -348,7 +348,7 @@ function load() {
   try { b = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
   try { a = mem !== null ? JSON.parse(mem) : null; } catch (e) {}
   if (a && a.v !== 1) a = null; if (b && b.v !== 1) b = null;
-  if (!a || !b) { const s = Object.assign(fresh(), a || b || {}); s.st = Object.assign(fresh().st, s.st); return s; }
+  if (!a || !b) { const s = Object.assign(fresh(), a || b || {}); s.st = Object.assign(fresh().st, s.st); return tidyRuns(s); }
   // 両方あるとき（保存に失敗したあと別のタブが保存した）：新しいほうを元に、記録は両方を合わせ、数は大きいほう
   a = Object.assign(fresh(), a); b = Object.assign(fresh(), b);
   const [n, o] = (a.t || 0) >= (b.t || 0) ? [a, b] : [b, a];
@@ -358,8 +358,10 @@ function load() {
   s.done = [...new Set([...(n.done || []), ...(o.done || [])])].slice(0, 30);
   s.runs = Object.assign({}, n.runs);
   for (const m in o.runs) { const x = o.runs[m], y = n.runs[m]; if (x && (!y || (y.id === x.id && x.moves.length > y.moves.length))) if (!s.done.includes(x.id)) s.runs[m] = x; }
-  return s;
+  return tidyRuns(s);
 }
+// 今のきまりで当てられない手のある途中経過（朝のせりの前の古い記録）は、続きからに出さない（2026-11-11 CodeRabbit #6）
+function tidyRuns(s) { for (const m in s.runs) { const r = s.runs[m]; if (r && (!Array.isArray(r.moves) || Y.replay(r.seed, r.moves, { adv: !!r.adv }).bad !== undefined)) s.runs[m] = null; } return s; }
 function saveWarn(on) { let b = document.getElementById("savewarn"); const l = document.getElementById("live"), W = "この端末に記録を保存できませんでした。ページを開き直すと、いまの記録が消えます"; if (!on) { if (b) { b.remove(); if (saveWarn.o) saveWarn.o.disconnect(); if (l && l.textContent.includes(W)) l.textContent = l.textContent.replace(W, "").replace(/^[。\s]+|[。\s]+$/g, ""); } return; } if (b) return; b = document.createElement("div"); b.id = "savewarn"; b.setAttribute("role", "status"); b.textContent = W; b.style.cssText = "position:sticky;top:0;z-index:9999;padding:8px 12px;background:#fff3cd;color:#000;font-size:15px;line-height:1.5;text-align:center;pointer-events:none;border-bottom:2px solid #8a6d00"; (document.body || document.documentElement).prepend(b); if (l) { l.textContent = W; if (window.MutationObserver) { saveWarn.o = new MutationObserver(() => { if (document.getElementById("savewarn") && l.textContent && !l.textContent.includes(W)) l.textContent += "。" + W; }); saveWarn.o.observe(l, { childList: true, characterData: true, subtree: true }); } } } // 帯は画面のいちばん上に場所を取り、#live でも読み上げる。保存できたら帯と #live の警告を消す
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; saveWarn(false); } catch (e) { mem = j; saveWarn(true); } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
@@ -436,7 +438,7 @@ function home() {
     <h2 id="h-one">1人で（となりの店主と）</h2>
     <div class="lv" role="group" aria-label="店主の強さ"><span class="note">店主の強さ</span>
       <button id="lv-e" aria-pressed="${s.lv === "easy"}">やさしい</button><button id="lv-n" aria-pressed="${s.lv !== "easy"}">ふつう</button></div>
-    ${td ? `<p>今日の盤：${td.w ? "★勝ち" : "○遊んだ"}（${td.adv ? "上級・" : ""}${td.s}💰 対 ${td.o}💰）。また明日。練習は何回でも遊べます。</p>` : `<button class="main big" id="go-d">${dRun ? "今日の盤の続きから" : "今日の盤"}</button><p class="note">今日の盤（店札の順）はだれでも同じ。1日1回です。</p>`}
+    ${td ? `<p>今日の盤：${td.w ? "★勝ち" : "○遊んだ"}（${td.adv ? "上級・" : ""}${td.s}点 対 ${td.o}点）。また明日。練習は何回でも遊べます。</p>` : `<button class="main big" id="go-d">${dRun ? "今日の盤の続きから" : "今日の盤"}</button><p class="note">今日の盤（店札の順）はだれでも同じ。1日1回です。</p>`}
     <button class="big" id="go-p">${pRun ? "練習の続きから" : "練習（ちがう盤）"}</button>
     ${aRun ? `<button class="big" id="go-a">あとから（${aRun.date.slice(5).replace("-", "/")}）の続きから</button>` : ""}
   </section>
@@ -582,6 +584,8 @@ function next() {
   setTimeout(() => { if (g !== gen || !aiTurn()) return; if (act(Y.aiMove(G, RUN.lv))) { draw(); next(); } }, 650); // 画面が替わっていたら何もしない
 }
 
+// その局でいちばん大きかった客メーター（日のおわりごと。行事・税の増減は入れない。2026-11-11 CodeRabbit #6）
+function maxMeter(run, o) { const g = Y.newGame(run.seed, { adv: !!run.adv }); let mx = 0; for (const mv of run.moves) { const d = g.day; if (!Y.apply(g, mv)) break; if (g.over || g.day !== d) mx = Math.max(mx, Y.income(g.board, o, g.adv)); } return mx; }
 function finish() {
   const s0 = load(); if (s0.done.includes(RUN.id)) return;
   const a = Y.score(G, "a"), b = Y.score(G, "b"), w = Y.winner(G) === "a";
@@ -593,7 +597,7 @@ function finish() {
     else {
       if (G.adv && G.goals.a.every((k) => { const [h, n] = Y.goalProg(G, "a", k); return h >= n; })) s.st.goals++;
       if (w) { s.st.wins++; if (G.adv) s.st.awins++; if (RUN.lv === "normal") s.st.nwins++; if (G.p.a.borrowed === 0) s.st.nob++; else if (G.p.a.loans === 0) s.st.lwin++; }
-      s.st.maxInc = Math.max(s.st.maxInc, ...G.p.a.inc); if (kinds === 5) s.st.all5++; if (a >= 100) s.st.rich++;
+      s.st.maxInc = Math.max(s.st.maxInc, maxMeter(RUN, "a")); if (kinds === 5) s.st.all5++; if (G.p.a.money >= 100) s.st.rich++;
       if (MODE === "d" && !s.days[RUN.date]) s.days[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv, adv: G.adv ? 1 : 0 };
       if (MODE === "a" && !s.adays[RUN.date] && !s.days[RUN.date]) s.adays[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv, adv: G.adv ? 1 : 0 };
     }
@@ -623,7 +627,7 @@ function draw() {
   let goals = "";
   if (adv && G.over) goals = `<section class="box"><h2>秘密の目標</h2>${["a", "b"].map((o) => `<h3>${nm[o]}（+${Y.goalPts(G, o)}点）</h3>${goalList(o)}`).join("")}</section>`;
   else if (adv && MODE !== "v") goals = `<details class="box" open><summary>あなたの秘密の目標（店主のは、おわるまで見えません）</summary>${goalList("a")}</details>`;
-  else if (adv) goals = `<section class="box"><div class="row" style="justify-content:space-between;align-items:center"><b>秘密の目標</b><button id="peek" aria-pressed="${peek}">${peek ? "かくす" : `${nm[G.turn]}の目標を見る`}</button></div>${peek ? goalList(G.turn) : `<p class="note">相手に見えないようにしてから押してください。番が替わると自動でかくれます。</p>`}</section>`;
+  else if (adv && !hand) goals = `<section class="box"><div class="row" style="justify-content:space-between;align-items:center"><b>秘密の目標</b><button id="peek" aria-pressed="${peek}">${peek ? "かくす" : `${nm[G.turn]}の目標を見る`}</button></div>${peek ? goalList(G.turn) : `<p class="note">相手に見えないようにしてから押してください。番が替わると自動でかくれます。</p>`}</section>`;
   const cards = G.market.map((t, m) => {
     if (!t) return `<button class="card gone" disabled aria-hidden="true" tabindex="-1"></button>`;
     const short = me && S[t].c > me.money;
@@ -656,7 +660,7 @@ function draw() {
       <p>${r.tie ? `同じ額なので、どちらも払いません。優先札を持つ${tokL(f)}が先です。` : `${tokL(f)}が多く出したので先に選び、${r.pay}💰を払います。${tokL(o2)}は払いません。`}優先札は${tokL(r.tok)}に回ります。</p>
       <button class="main big" id="bid-ok">${MODE !== "v" && f === "b" ? "店主が先に選びます ▶" : `${tokL(f)}が札を選ぶ ▶`}</button></section>`;
   } else if (!G.over && !dayEnd && G.phase === "bid") {
-    const o = G.turn, mx = G.p[o].money; bidV = Math.max(0, Math.min(bidV, mx));
+    const o = G.turn, mx = Math.max(0, G.p[o].money); bidV = Math.max(0, Math.min(bidV, mx));
     const rule = `多く出した人が先に札を選び、その額を払います（もう一方は払いません）。同じ額ならどちらも払わず、優先札を持つ${tokL(G.tok)}が先。`;
     if (hand) bidBox = `<section class="box bid" aria-labelledby="h-bid"><h2 id="h-bid" tabindex="-1">朝のせり：2Pの番</h2><p>${tokL("a")}は額を決めました。2Pに渡してください（1Pの額は見えません）。</p><button class="main big" id="hand-ok">2Pです。額を決める</button></section>`;
     else if (human) bidBox = `<section class="box bid" aria-labelledby="h-bid"><h2 id="h-bid" tabindex="-1">朝のせり${MODE === "v" ? `：${tokL(o)}の番` : ""}</h2>
@@ -739,7 +743,7 @@ function draw() {
   else if (G.over && $("h-end")) { $("h-end").focus({ preventScroll: true }); $("h-end").scrollIntoView({ block: "center" }); } // おわったら結果を見せる
 }
 
-window.__yk = { Y, load, save, home, start, resume, act, todayKey, get G() { return G; }, get RUN() { return RUN; }, get MODE() { return MODE; }, ACH };
+window.__yk = { Y, load, save, home, start, resume, act, todayKey, maxMeter, get G() { return G; }, get RUN() { return RUN; }, get MODE() { return MODE; }, ACH };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>

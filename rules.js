@@ -174,7 +174,7 @@
   function legal(g, mv) {
     if (g.over || !mv) return false;
     const p = g.p[g.turn];
-    if (g.phase === "bid") { if (mv.a === "bid") return Number.isInteger(mv.v) && mv.v >= 0 && mv.v <= p.money; if (mv.a === "borrow") return p.loans < MAX_LOANS; if (mv.a === "repay") return p.loans > 0 && p.money >= LOAN; return false; }
+    if (g.phase === "bid") { if (mv.a === "bid") return Number.isInteger(mv.v) && mv.v >= 0 && mv.v <= Math.max(0, p.money); if (mv.a === "borrow") return p.loans < MAX_LOANS; if (mv.a === "repay") return p.loans > 0 && p.money >= LOAN; return false; }
     if (mv.a === "bid") return false;
     if (mv.a === "pick") { const t = g.market[mv.m]; return !!t && Number.isInteger(mv.i) && mv.i >= 0 && mv.i < N * N && !g.board[mv.i] && p.money >= costAt(t, mv.i, g.adv); }
     if (mv.a === "up") { const c = Number.isInteger(mv.i) && g.board[mv.i]; return !!g.adv && !!c && c.o === g.turn && c.t !== "ie" && !c.up && p.money >= upCost(g.board, mv.i); }
@@ -271,7 +271,8 @@
     return pick.a === "up" ? { a: "up", i: pick.i } : { a: "pick", m: pick.m, i: pick.i };
   }
   // 種と手の並びから今の盤を作り直す（続きから・別のタブとの照らし合わせに使う）
-  function replay(seed, moves, opts) { const g = newGame(seed, opts); for (const mv of moves || []) if (!apply(g, mv)) break; return g; }
+  // 当てられない手で止まったら g.bad にその番号を残す（朝のせりの前の古い記録など。index.html が続きから外す）
+  function replay(seed, moves, opts) { const g = newGame(seed, opts), M = moves || []; for (let k = 0; k < M.length; k++) if (!apply(g, M[k])) { g.bad = k; break; } return g; }
 
   const api = { UP_ADD, EVENTS, EV_KEYS, EV_SEE, GOALS, GOAL_KEYS, MAIN, CORNER, custEv, evAdd, dayIncome, LINE_PT, groupOf, linesOf, terr, KOMI, komiOf, tok0, rateOf, costAt, upCost, eventsOf, goalsOf, goalProg, goalPts, evOf, SHOPS, KINDS, N, DAYS, LOAN, MAX_LOANS, START, PER_KIND, MARKET, hash, rngOf, seedOfDate, deckOf, nb, cust, income, delta, newGame, legal, apply, score, winner, aiMove, replay, other, firstOf, daysLeft };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.YRK = api;

@@ -183,6 +183,10 @@ const print = readFileSync(path.join(root, "print.html"), "utf8"), lite = readFi
     check("上級：行事の札はどれも「1軒につき」で、となりを見ない（2倍は無い。客メーターに足すだけ）", Y.custEv(B, 0, "sale") === Y.cust(B, 0, true) + 2 && Y.EV_KEYS.every((k) => !/2倍/.test(Y.EVENTS[k].txt) || k === "rateup") && !/となりの店/.test(Y.EVENTS.holiday.txt) && !print.includes("足してから2倍") && !html.includes("足してから2倍"));
     { const h = Array(Y.N * Y.N).fill(null); h[0] = { t: "ie", o: "a" }; h[1] = { t: "ie", o: "a" }; h[12] = { t: "hon", o: "a" }; h[2] = { t: "cafe", o: "a" };
       check("上級：連休は自分の🏠1軒 +1・道路工事は大通りの店1軒 −1・税は店1軒 −1（住宅のぞく）", Y.dayIncome(h, "a", true, "holiday") === Y.income(h, "a", true) + 2 && Y.dayIncome(h, "a", true, "work") === Y.income(h, "a", true) - 1 && Y.dayIncome(h, "a", true, "tax") === Y.income(h, "a", true) - 2); }
+  { const g = Y.newGame(7); g.p.a.money = -2;
+    check("朝のせり：お金がマイナスでも0は出せる（借りきって返せなくても次の日へ進める）。1以上は出せない", Y.legal(g, { a: "bid", v: 0 }) && !Y.legal(g, { a: "bid", v: 1 }));
+    const ok = Y.replay(7, [{ a: "bid", v: 0 }, { a: "bid", v: 0 }]), old = Y.replay(7, [{ a: "pass" }, { a: "pass" }]);
+    check("当てられない手（朝のせりの前の古い記録）で止まると bad にその番号が残る", ok.bad === undefined && old.bad === 0); }
     check("上級：同点のときは行事の札を入れない客で比べる（説明書と画面に書く）", /function winner[^}]*income\(g\.board, "a", g\.adv\)/.test(readFileSync(path.join(root, "rules.js"), "utf8")) && print.includes("客メーター（行事の札は入れない）") && html.includes("行事の札は入れない"));
     check("上級：お金が足りないときはマイナスのまま続く（説明書に書く）", print.includes("マイナスのまま続けます"));
   }
@@ -271,6 +275,14 @@ try {
     check("今日の盤：市場はだれでも同じ日付の並び・10日まで遊べて、今日の記録に残る", firstMarket === want && done && !!s.days[t] && s.st.games === 1, `${firstMarket} / ${want}`);
     await p.click("#home2");
     check("今日の盤を終えたら、ホームに結果が出て、今日はもう始められない", !(await p.$("#go-d")) && /今日の盤：/.test(await p.textContent("main")));
+    { const m = (await p.textContent("main")).match(/今日の盤：[^（]*（(?:上級・)?(-?\d+)点 対 (-?\d+)点）/);
+      check("ホームの今日の結果は、おわりの点（お金でなく点）で、記録の点と同じ", !!m && Number(m[1]) === s.days[t].s && Number(m[2]) === s.days[t].o, m ? m[0] : ""); }
+    { const r = await p.evaluate(() => { const Y = __yk.Y, out = { basic: 0, same: 0, adv: 0, diff: 0 };
+        for (let sd = 1; sd <= 20; sd++) for (const adv of [false, true]) { const g = Y.newGame(sd, { adv }), moves = []; let k = 0; while (!g.over && k++ < 400) { const mv = Y.aiMove(g, "normal"); moves.push(mv); Y.apply(g, mv); }
+          const mm = __yk.maxMeter({ seed: sd, adv, moves }, "a"), mi = Math.max(...g.p.a.inc);
+          if (adv) { out.adv++; if (mm !== mi) out.diff++; } else { out.basic++; if (mm === mi) out.same++; } }
+        return out; });
+      check("実績「大にぎわい」は日のおわりの客メーターの最大で数える（基本は収入と同じ・上級は行事の増減を入れないので収入とちがう局がある）", r.basic === 20 && r.same === 20 && r.diff > 0, JSON.stringify(r)); }
     check("カレンダーに今日の印（★か○）が出る", await p.evaluate(() => /[★○]/.test(document.querySelector(".cal .d.today").textContent)));
     const w = s.days[t].w;
     const kofiHtml = await p.evaluate(() => JSON.stringify(__yk.load().kofi));
@@ -307,6 +319,17 @@ try {
     await p.click("#hand-ok"); const v2 = await p.textContent("#bid-v"); await p.click("#bid-go");
     const res = await p.evaluate(() => document.querySelector(".bid .vs") && document.querySelector(".bid .vs").textContent);
     check("朝のせり（2人）：1Pが決めると2Pに渡す画面になり、1Pの額は出さない。2Pは0から決め、決めたら2人の額が開く", h.hand && !h.go && !/2💰/.test(h.txt) && /^0/.test(v2) && /2💰/.test(res || "") && /0💰/.test(res || ""), `${h.txt} / ${v2} / ${res}`);
+    await p.close(); }
+  { const p = await fresh(ctx); await p.click("#rl-a"); await p.click("#go-v"); await p.click("#bid-go");
+    const pk = await p.evaluate(() => ({ hand: !!document.getElementById("hand-ok"), peek: !!document.getElementById("peek") }));
+    await p.click("#hand-ok"); const pk2 = await p.evaluate(() => !!document.getElementById("peek"));
+    check("上級2人：2Pに渡す画面のあいだは「目標を見る」が無い（1Pが2Pの目標を見られない）。渡したあとは出る", pk.hand && !pk.peek && pk2, JSON.stringify(pk));
+    await p.close(); }
+  // 古い記録（朝のせりの前）の途中経過は続きからに出さない・今日の結果は点で出す
+  { const p = await fresh(ctx);
+    await p.evaluate((k) => { const s = JSON.parse(localStorage.getItem(k)); s.runs = { p: { mode: "p", seed: 7, moves: [{ a: "pass" }, { a: "pass" }], id: "old1" } }; localStorage.setItem(k, JSON.stringify(s)); }, KEY);
+    await p.reload(); const t = await p.textContent("#go-p");
+    check("朝のせりの前の古い途中経過は「続きから」に出さず、新しく始まる", !/続きから/.test(t) && (await p.evaluate(() => __yk.load().runs.p)) === null, t);
     await p.close(); }
 
   STEP = "続きから・古いタブ";
