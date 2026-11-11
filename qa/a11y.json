@@ -1,6 +1,7 @@
 {
   "screens": [
     { "name": "2人対戦", "click": ["#go-v"] },
-    { "name": "練習（店主と）", "click": ["#go-p"] }
+    { "name": "練習（店主と）", "click": ["#go-p"] },
+    { "name": "上級ルールの練習", "click": ["#rl-a", "#go-p"] }
   ]
 }

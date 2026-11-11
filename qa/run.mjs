@@ -1,5 +1,5 @@
 // やりくり商店街の検査。きまり（1000局の対局・3年分の今日の盤・作り直し）・2人対戦と1人用を通しで遊ぶ・続きから・古いタブ・
-// 今日の盤は1日1回・あとから・記録と実績・遊び方・保存できないときの帯・印刷の5枚・スマホ幅・PWA・引き継ぎ・見やすさ を確かめる。
+// 今日の盤は1日1回・あとから・記録と実績・遊び方・保存できないときの帯・印刷の7枚・スマホ幅・PWA・引き継ぎ・見やすさ を確かめる。
 // 使い方: node qa/run.mjs   失敗があれば終了コード 1。結果は qa-report/report.md。
 import { chromium } from "playwright";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
@@ -85,6 +85,49 @@ const KEY = "yrk-v1";
   check("やさしい店主は、目の前の得だけを見る遊び方と五分くらい（30〜70%）", gw >= 90 && gw <= 210, `${gw}/300`);
 }
 
+// ===== 1b. 上級ルール（opts.adv） =====
+{
+  const A = { adv: true };
+  check("上級：何も渡さなければ基本ルール（行事の札・目標なし）", Y.newGame(9).adv === false && Y.newGame(9).events === null && JSON.stringify(Y.newGame(9).deck) === JSON.stringify(Y.newGame(9, A).deck));
+  const ev = Y.eventsOf(Y.seedOfDate("2026-11-11"));
+  check("上級：行事の札は12種から10日分・重なりなし・日付の種で同じ", ev.length === Y.DAYS && new Set(ev).size === Y.DAYS && ev.every((k) => Y.EV_KEYS.includes(k)) && Y.EV_KEYS.length === 12 && JSON.stringify(ev) === JSON.stringify(Y.eventsOf(Y.seedOfDate("2026-11-11"))));
+  const gs = Y.goalsOf(77);
+  check("上級：秘密の目標は8枚から2枚ずつ・4枚とも別", gs.a.length === 2 && gs.b.length === 2 && new Set([...gs.a, ...gs.b]).size === 4 && Y.GOAL_KEYS.length === 8);
+  { const b = Array(25).fill(null); b[12] = { t: "pan", o: "a" }; b[0] = { t: "pan", o: "a" };
+    check("上級：大通りの店は客+1・置く値段+1（基本ルールではふつう）", Y.cust(b, 12, true) === Y.SHOPS.pan.base + 1 && Y.cust(b, 12) === Y.SHOPS.pan.base && Y.costAt("pan", 12, true) === Y.SHOPS.pan.c + 1 && Y.costAt("pan", 0, true) === Y.SHOPS.pan.c && Y.costAt("pan", 12, false) === Y.SHOPS.pan.c); }
+  { const g = Y.newGame(5, A); g.p.a.money = 99; g.board[1] = { t: "cafe", o: "a" }; g.board[2] = { t: "ie", o: "a" }; g.board[3] = { t: "hon", o: "b" };
+    const c0 = Y.cust(g.board, 1, true), base = Y.newGame(5); base.p.a.money = 99; base.board[1] = { t: "cafe", o: "a" };
+    check("上級：増築は自分の店だけ（住宅・相手の店・基本ルールではできない）", Y.legal(g, { a: "up", i: 1 }) && !Y.legal(g, { a: "up", i: 2 }) && !Y.legal(g, { a: "up", i: 3 }) && !Y.legal(g, { a: "up", i: 0 }) && !Y.legal(base, { a: "up", i: 1 }));
+    const m0 = g.p.a.money; Y.apply(g, { a: "up", i: 1 });
+    check("上級：増築するとその店の値段を払い、客+" + Y.UP_ADD + "・番が替わる・2回はできない", g.p.a.money === m0 - Y.SHOPS.cafe.c && Y.cust(g.board, 1, true) === c0 + Y.UP_ADD && g.turn === "b" && (g.turn = "a", !Y.legal(g, { a: "up", i: 1 }))); }
+  { const b = Array(25).fill(null); b[11] = { t: "yasai", o: "a" }; b[0] = { t: "cafe", o: "a" };
+    const base = Y.dayIncome(b, "a", true, null);
+    check("上級：行事の札（大売り出し🥕2倍・雨☕+1・お祭りは大通り+2・税は店1軒1💰）", Y.dayIncome(b, "a", true, "sale") === base + Y.cust(b, 11, true) && Y.dayIncome(b, "a", true, "rain") === base + 1 && Y.dayIncome(b, "a", true, "festival") === base + 2 && Y.dayIncome(b, "a", true, "tax") === base - 2 && Y.dayIncome(b, "a", false, "tax") === Y.income(b, "a")); }
+  { const g = Y.newGame(3, A); g.events = g.events.map(() => "rateup"); Y.apply(g, { a: "borrow" }); Y.apply(g, { a: "pass" }); const m0 = g.p.a.money; Y.apply(g, { a: "pass" });
+    check("上級：金利が上がる日は利息2倍", g.p.a.interest === 2 && g.p.a.money === m0 + Y.dayIncome(g.board, "a", true, "rateup") - 2); }
+  { const g = Y.newGame(3, A); g.goals.a = ["homes", "noloan"]; for (const i of [0, 1, 2]) g.board[i] = { t: "ie", o: "a" };
+    check("上級：満たした目標の点がおわりの数に入る", Y.goalPts(g, "a") === Y.GOALS.homes.pt + Y.GOALS.noloan.pt && Y.score(g, "a") === g.p.a.money + Y.GOALS.homes.pt + Y.GOALS.noloan.pt && Y.score(Y.newGame(3), "a") === Y.START); }
+  const play = (fa, fb, seed) => { const x = Y.newGame(seed, A), mv = []; let n = 0; while (!x.over && n++ < 300) { const m = (x.turn === "a" ? fa : fb)(x); if (!Y.apply(x, m)) return { bad: JSON.stringify(m) }; mv.push(m); } return { x, mv }; };
+  const N = (x) => Y.aiMove(x, "normal"), noUp = (x) => { const m = Y.aiMove(x, "normal"); return m.a === "up" ? { a: "pass" } : m; }, noB = (x) => { const m = Y.aiMove(x, "normal"); return m.a === "borrow" ? { a: "pass" } : m; };
+  let bad = "", loop = 0, rep = true, an = 0, bn = 0, ups = 0, goals = new Set(), upW = 0, bW = 0;
+  for (let s = 1; s <= 1000; s++) {
+    const r = play(N, N, s * 7919);
+    if (r.bad) { bad = r.bad; break; }
+    if (!r.x.over) loop++;
+    if (s <= 100 && JSON.stringify(Y.replay(s * 7919, r.mv, A).p) !== JSON.stringify(r.x.p)) rep = false;
+    const w = Y.winner(r.x); if (w === "a") an++; else if (w === "b") bn++;
+    ups += r.mv.filter((m) => m.a === "up").length;
+    for (const o of ["a", "b"]) for (const k of r.x.goals[o]) { const [h, n] = Y.goalProg(r.x, o, k); if (h >= n) goals.add(k); }
+    if (s <= 500) { const u = s % 2 ? play(noUp, N, s * 131) : play(N, noUp, s * 131); if (Y.winner(u.x) === (s % 2 ? "b" : "a")) upW++;
+      const b = s % 2 ? play(noB, N, s * 137) : play(N, noB, s * 137); if (Y.winner(b.x) === (s % 2 ? "b" : "a")) bW++; }
+  }
+  check("上級：店主どうしの1000局で、できない手を出さず10日で終わり、作り直すと同じ", !bad && loop === 0 && rep, bad || `${loop}局が終わらない`);
+  check("上級：先手と後手の勝ちはどちらも40〜60%", an >= 400 && an <= 600 && bn >= 400 && bn <= 600, `先 ${an}・後 ${bn}`);
+  check("上級：増築に意味がある（増築する店主が、しない店主に52%以上・80%以下で勝つ。強すぎない）", upW >= 260 && upW <= 400, `${upW}/500`);
+  check("上級：借りることにも意味がある（借りる店主が8割以上勝つ）", bW >= 400, `${bW}/500`);
+  check("上級：増築が使われ、8つの目標はどれも満たされることがある", ups > 500 && goals.size === 8, `増築 ${ups}・目標 ${[...goals].join(",")}`);
+}
+
 // ===== 2. ファイル =====
 const html = readFileSync(path.join(root, "index.html"), "utf8");
 const print = readFileSync(path.join(root, "print.html"), "utf8");
@@ -120,15 +163,15 @@ const errors = [];
 const watch = (p) => { p.on("pageerror", (e) => errors.push(String(e))); return p; };
 // at：日付を決めて開く（はじめの日のすぐ後は「あとから」の日が無く、検査が空回りするため）
 const fresh = async (ctx, at) => { const p = watch(await ctx.newPage()); if (at) await p.clock.setFixedTime(new Date(at)); await p.goto(url); await p.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 1, tut: true })); }, KEY); await p.reload(); return p; };
-const step1 = async (p) => { const c = await p.$(".card[data-m]:not([disabled])"); if (c) { await c.click(); await p.click(".cell.can"); } else await p.click("#pass"); };
+// 上級では大通りの値段が高く、選べる札でも置ける所が無いことがある。そのときは選びなおさず店番
+const step1 = async (p) => { const c = await p.$(".card[data-m]:not([disabled])"); if (c) { await c.click(); const cell = await p.$(".cell.can[data-i]"); if (cell) return cell.click(); } await p.click("#pass"); };
 // 人の番を、置ける店札のうち最初の1枚を最初の空き地に置いて進める（店主の番は待つ）
 const playOut = async (p, limit = 400) => {
   for (let k = 0; k < limit; k++) {
     const st = await p.evaluate(() => ({ o: __yk.G ? __yk.G.over : true, t: __yk.G && __yk.G.turn, v: __yk.MODE === "v" }));
     if (st.o) return true;
     if (!st.v && st.t !== "a") { await p.waitForTimeout(120); continue; }
-    const c = await p.$(".card[data-m]:not([disabled])");
-    if (c) { await c.click(); await p.click(".cell.can"); } else await p.click("#pass");
+    await step1(p);
   }
   return false;
 };
@@ -222,6 +265,31 @@ try {
     check("ホームへ戻ったら店主は手を打たない", await p.evaluate(() => __yk.MODE === null && !!document.getElementById("go-v")));
     await p.close(); }
 
+  STEP = "上級ルール";
+  // 上級ルール：切り替え・行事の札・目標・大通り・増築・おわりの目標
+  { const p = await fresh(ctx); await p.click("#rl-a");
+    check("上級：ホームで基本／上級を切り替えられ、記録に残る", (await p.getAttribute("#rl-a", "aria-pressed")) === "true" && (await p.evaluate(() => __yk.load().rule)) === "adv");
+    await p.click("#go-p");
+    const v = await p.evaluate(() => ({ r: __yk.RUN.adv, g: __yk.G.adv, ev: document.querySelectorAll(".ev").length, gl: document.querySelectorAll(".goals li").length, ave: document.querySelectorAll(".cell.ave").length, tag: document.querySelector(".turn .tag") && document.querySelector(".turn .tag").textContent }));
+    check("上級：練習が上級で始まり、行事の札3日分・自分の目標2つ・大通り5マスが出る", v.r === true && v.g === true && v.ev === 3 && v.gl === 2 && v.ave === 5 && v.tag === "上級", JSON.stringify(v));
+    let up = false;
+    for (let k = 0; k < 80 && !up; k++) {
+      const st = await p.evaluate(() => ({ o: __yk.G.over, t: __yk.G.turn }));
+      if (st.o) break; if (st.t !== "a") { await p.waitForTimeout(120); continue; }
+      if (await p.$("#up:not([disabled])")) { await p.click("#up"); const c = await p.$(".cell[data-up]"); if (c) { const i = Number(await c.getAttribute("data-up")); await c.click(); up = await p.evaluate((i) => __yk.G.board[i].up === true && __yk.G.log.some((l) => l.a === "up" && l.who === "a"), i) && !!(await p.$(".cell .up")); } }
+      else await step1(p);
+    }
+    check("上級：「増築する」から自分の店を押すと2階建てになり、盤に「2F」が出る", up);
+    check("上級：おわりまで遊べる", await playOut(p));
+    const e = await p.evaluate(() => ({ h: document.querySelectorAll(".end ~ section h3, section h3").length, a: __yk.Y.score(__yk.G, "a"), m: __yk.G.p.a.money - 5 * __yk.G.p.a.loans + __yk.Y.goalPts(__yk.G, "a"), txt: document.body.textContent.includes("満たした目標の点") }));
+    check("上級：おわりに両方の目標を見せ、目標の点を足して比べる", e.h >= 2 && e.a === e.m && e.txt, JSON.stringify(e));
+    await p.close(); }
+  { const p = await fresh(ctx); await p.click("#rl-a"); await p.click("#go-v");
+    const hid = !(await p.$(".goals")); await p.click("#peek"); const shown = await p.$$eval(".goals li", (a) => a.length); const who = await p.evaluate(() => __yk.G.turn);
+    await step1(p); const after = !(await p.$(".goals")) && (await p.evaluate(() => __yk.G.turn)) !== who;
+    check("上級の2人対戦：目標は「見る」を押すまでかくれ、番が替わるとまたかくれる", hid && shown === 2 && after, `${hid}/${shown}/${after}`);
+    await p.close(); }
+
   STEP = "スマホ幅";
   // スマホ幅・押せる大きさ・色だけで分けない
   { const c2 = await browser.newContext({ viewport: { width: 320, height: 700 } }); const p = await fresh(c2);
@@ -236,19 +304,20 @@ try {
     check("どちらの店かは色だけでなく ●◆ の印と、実線・破線の枠でも分かる", /●/.test(marks) && (await p.$$eval(".who.b", (a) => getComputedStyle(a[0]).borderLeftStyle === "dashed")));
     await c2.close(); }
 
-  STEP = "印刷の5枚";
-  // 印刷の5枚
+  STEP = "印刷の7枚";
+  // 印刷の7枚
   { const p = watch(await ctx.newPage()); await p.goto(printUrl); await p.waitForTimeout(300);
     const pages = await p.$$eval(".page", (a) => a.map((e) => [e.scrollHeight <= e.clientHeight + 1, e.getAttribute("aria-label")]));
     const tiles = await p.$$eval(".tile", (a) => a.length), cells = await p.$$eval(".board > div", (a) => a.length);
     const sz = await p.evaluate(() => { const mm = (px) => (px * 25.4) / 96; const t = document.querySelector(".tile").getBoundingClientRect(), c = document.querySelector(".board > div").getBoundingClientRect(); return [mm(t.width), mm(c.width)]; });
-    check("印刷：説明書・盤・店札・お金・印と記録表の5枚で、どの紙からもはみ出さない", pages.length === 5 && pages.every((x) => x[0]), JSON.stringify(pages));
+    check("印刷：説明書・盤・店札・お金・印と記録表・上級ルール・行事と目標の札の7枚で、どの紙からもはみ出さない", pages.length === 7 && pages.every((x) => x[0]), JSON.stringify(pages));
+    check("印刷：行事の札12枚・目標の札8枚・2Fの札12枚・盤の大通り5マスで、文は rules.js と同じ", await p.evaluate(() => { const t = document.body.textContent; return document.querySelectorAll(".card:not(.goal)").length === 12 && document.querySelectorAll(".card.goal").length === 8 && document.querySelectorAll(".mark.up").length === 12 && document.querySelectorAll(".board .ave").length === 5 && YRK.EV_KEYS.every((k) => t.includes(YRK.EVENTS[k].txt)) && YRK.GOAL_KEYS.every((k) => t.includes(YRK.GOALS[k].txt) && t.includes(`${YRK.GOALS[k].pt}点`)) && [...document.querySelectorAll(".foot span:last-child")].every((e, i) => e.textContent === `${i + 1} / 7`); }));
     check("印刷：店札は30枚・盤は25マスで、店札（34mm）が盤のマス（36mm）に乗る", tiles === 30 && cells === 25 && Math.abs(sz[0] - 34) < 0.5 && Math.abs(sz[1] - 36) < 0.5, sz.map((v) => v.toFixed(1)).join("/"));
     check("印刷：説明書の店の値段・客は rules.js と同じ", Y.KINDS.every((k) => print.includes("rules.js")) && await p.evaluate(() => YRK.KINDS.every((k) => document.body.textContent.includes(`${YRK.SHOPS[k].nm} ${YRK.SHOPS[k].c}💰・客${YRK.SHOPS[k].base}`))));
     await p.emulateMedia({ media: "print" });
     const pdf = await p.pdf({ format: "A4", preferCSSPageSize: true, printBackground: true });
     const n = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
-    check("印刷：PDF にすると A4 でちょうど5ページ", n === 5, `${n}ページ`);
+    check("印刷：PDF にすると A4 でちょうど7ページ", n === 7, `${n}ページ`);
     await p.close(); }
   await ctx.close();
 
@@ -260,7 +329,7 @@ try {
     check("保存に失敗したら、保存できるまで知らせ続け、保存できたら消す", await ps.evaluate(async () => { const orig = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; save(() => {}); save(() => {}); const one = document.querySelectorAll("#savewarn").length === 1 && document.getElementById("savewarn").textContent.includes("保存できませんでした"); await new Promise((r) => setTimeout(r, 2500)); const stay = !!document.getElementById("savewarn"); Storage.prototype.setItem = orig; save(() => {}); return one && stay && !document.getElementById("savewarn"); }));
     check("保存できない帯は画面のいちばん上に場所を取り、スクロールしても見えている", await ps.evaluate(async () => { const orig = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error("full"); }; save(() => {}); const b = document.getElementById("savewarn"); const top = !!b && document.body.firstElementChild === b && getComputedStyle(b).position === "sticky"; const pad = document.createElement("div"); pad.style.height = "3000px"; document.body.appendChild(pad); scrollTo(0, document.documentElement.scrollHeight); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); const r = b.getBoundingClientRect(); const ok = top && scrollY > 1000 && r.top >= -1 && r.top < 5; pad.remove(); scrollTo(0, 0); Storage.prototype.setItem = orig; save(() => {}); return ok && !document.getElementById("savewarn"); }));
     await ps.close(); }
-} catch (e) { check("画面の検査が最後まで動く", false, `${STEP}: ${e.message.split("\n")[0]}`); }
+} catch (e) { check("画面の検査が最後まで動く", false, `${STEP}: ${e.message.split("\n").slice(0, 4).join(" ")}`); }
 await browser.close();
 check("画面のエラーが無い", errors.length === 0, errors.slice(0, 3).join(" | "));
 
