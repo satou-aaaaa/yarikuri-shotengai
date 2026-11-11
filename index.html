@@ -357,11 +357,13 @@ function load() {
   s.st = Object.assign(fresh().st, o.st, n.st); for (const k in s.st) s.st[k] = Math.max(o.st[k] || 0, n.st[k] || 0);
   s.done = [...new Set([...(n.done || []), ...(o.done || [])])].slice(0, 30);
   s.runs = Object.assign({}, n.runs);
-  for (const m in o.runs) { const x = o.runs[m], y = n.runs[m]; if (x && (!y || (y.id === x.id && x.moves.length > y.moves.length))) if (!s.done.includes(x.id)) s.runs[m] = x; }
+  for (const m in o.runs) { const x = o.runs[m], y = n.runs[m]; if (x && runOk(x) && (!y || !runOk(y) || (y.id === x.id && x.moves.length > y.moves.length))) if (!s.done.includes(x.id)) s.runs[m] = x; }
   return tidyRuns(s);
 }
 // 今のきまりで当てられない手のある途中経過（朝のせりの前の古い記録）は、続きからに出さない（2026-11-11 CodeRabbit #6）
-function tidyRuns(s) { for (const m in s.runs) { const r = s.runs[m]; if (r && (!Array.isArray(r.moves) || Y.replay(r.seed, r.moves, { adv: !!r.adv }).bad !== undefined)) s.runs[m] = null; } return s; }
+// 合わせる前にも見る（新しいほうが古い記録でも、もう一方の当てられる記録を残す）。再生で例外が出る記録も外す（ホームが開けなくならないように）
+function runOk(r) { try { return !!r && Array.isArray(r.moves) && Y.replay(r.seed, r.moves, { adv: !!r.adv }).bad === undefined; } catch (e) { return false; } }
+function tidyRuns(s) { for (const m in s.runs) if (s.runs[m] && !runOk(s.runs[m])) s.runs[m] = null; return s; }
 function saveWarn(on) { let b = document.getElementById("savewarn"); const l = document.getElementById("live"), W = "この端末に記録を保存できませんでした。ページを開き直すと、いまの記録が消えます"; if (!on) { if (b) { b.remove(); if (saveWarn.o) saveWarn.o.disconnect(); if (l && l.textContent.includes(W)) l.textContent = l.textContent.replace(W, "").replace(/^[。\s]+|[。\s]+$/g, ""); } return; } if (b) return; b = document.createElement("div"); b.id = "savewarn"; b.setAttribute("role", "status"); b.textContent = W; b.style.cssText = "position:sticky;top:0;z-index:9999;padding:8px 12px;background:#fff3cd;color:#000;font-size:15px;line-height:1.5;text-align:center;pointer-events:none;border-bottom:2px solid #8a6d00"; (document.body || document.documentElement).prepend(b); if (l) { l.textContent = W; if (window.MutationObserver) { saveWarn.o = new MutationObserver(() => { if (document.getElementById("savewarn") && l.textContent && !l.textContent.includes(W)) l.textContent += "。" + W; }); saveWarn.o.observe(l, { childList: true, characterData: true, subtree: true }); } } } // 帯は画面のいちばん上に場所を取り、#live でも読み上げる。保存できたら帯と #live の警告を消す
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; saveWarn(false); } catch (e) { mem = j; saveWarn(true); } return s; }
 function streak(days) { let k = todayKey(), n = 0; if (!days[k]) k = prevDay(k); while (days[k]) { n++; k = prevDay(k); } return n; }
@@ -627,7 +629,7 @@ function draw() {
   let goals = "";
   if (adv && G.over) goals = `<section class="box"><h2>秘密の目標</h2>${["a", "b"].map((o) => `<h3>${nm[o]}（+${Y.goalPts(G, o)}点）</h3>${goalList(o)}`).join("")}</section>`;
   else if (adv && MODE !== "v") goals = `<details class="box" open><summary>あなたの秘密の目標（店主のは、おわるまで見えません）</summary>${goalList("a")}</details>`;
-  else if (adv && !hand) goals = `<section class="box"><div class="row" style="justify-content:space-between;align-items:center"><b>秘密の目標</b><button id="peek" aria-pressed="${peek}">${peek ? "かくす" : `${nm[G.turn]}の目標を見る`}</button></div>${peek ? goalList(G.turn) : `<p class="note">相手に見えないようにしてから押してください。番が替わると自動でかくれます。</p>`}</section>`;
+  else if (adv && !hand && !bidRes) goals = `<section class="box"><div class="row" style="justify-content:space-between;align-items:center"><b>秘密の目標</b><button id="peek" aria-pressed="${peek}">${peek ? "かくす" : `${nm[G.turn]}の目標を見る`}</button></div>${peek ? goalList(G.turn) : `<p class="note">相手に見えないようにしてから押してください。番が替わると自動でかくれます。</p>`}</section>`;
   const cards = G.market.map((t, m) => {
     if (!t) return `<button class="card gone" disabled aria-hidden="true" tabindex="-1"></button>`;
     const short = me && S[t].c > me.money;

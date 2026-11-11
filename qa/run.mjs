@@ -280,9 +280,11 @@ try {
     { const r = await p.evaluate(() => { const Y = __yk.Y, out = { basic: 0, same: 0, adv: 0, diff: 0 };
         for (let sd = 1; sd <= 20; sd++) for (const adv of [false, true]) { const g = Y.newGame(sd, { adv }), moves = []; let k = 0; while (!g.over && k++ < 400) { const mv = Y.aiMove(g, "normal"); moves.push(mv); Y.apply(g, mv); }
           const mm = __yk.maxMeter({ seed: sd, adv, moves }, "a"), mi = Math.max(...g.p.a.inc);
+          let ex = 0; { const h = Y.newGame(sd, { adv }); for (const mv of moves) { const n = h.log.length; Y.apply(h, mv); for (const L of h.log.slice(n)) if (L.a === "day") ex = Math.max(ex, L.inc.a - (L.ev ? h.board.reduce((t, c, i) => t + (c && c.o === "a" ? Y.evAdd(h.board, i, L.ev) : 0), 0) : 0)); } }
+          if (mm !== ex) out.bad = (out.bad || 0) + 1;
           if (adv) { out.adv++; if (mm !== mi) out.diff++; } else { out.basic++; if (mm === mi) out.same++; } }
         return out; });
-      check("実績「大にぎわい」は日のおわりの客メーターの最大で数える（基本は収入と同じ・上級は行事の増減を入れないので収入とちがう局がある）", r.basic === 20 && r.same === 20 && r.diff > 0, JSON.stringify(r)); }
+      check("実績「大にぎわい」は日のおわりの客メーターの最大で数える（基本は収入と同じ・上級は行事の増減を入れないので収入とちがう局がある）", r.basic === 20 && r.same === 20 && r.diff > 0 && !r.bad, JSON.stringify(r)); }
     check("カレンダーに今日の印（★か○）が出る", await p.evaluate(() => /[★○]/.test(document.querySelector(".cal .d.today").textContent)));
     const w = s.days[t].w;
     const kofiHtml = await p.evaluate(() => JSON.stringify(__yk.load().kofi));
@@ -324,6 +326,9 @@ try {
     const pk = await p.evaluate(() => ({ hand: !!document.getElementById("hand-ok"), peek: !!document.getElementById("peek") }));
     await p.click("#hand-ok"); const pk2 = await p.evaluate(() => !!document.getElementById("peek"));
     check("上級2人：2Pに渡す画面のあいだは「目標を見る」が無い（1Pが2Pの目標を見られない）。渡したあとは出る", pk.hand && !pk.peek && pk2, JSON.stringify(pk));
+    await p.click("#bid-go"); const pk3 = await p.evaluate(() => ({ res: !!document.getElementById("bid-ok"), peek: !!document.getElementById("peek") }));
+    await p.click("#bid-ok"); const pk4 = await p.evaluate(() => !!document.getElementById("peek"));
+    check("上級2人：せりの結果を出しているあいだも「目標を見る」が無い（先に選ぶ人に渡す前に見られない）。閉じたあとは出る", pk3.res && !pk3.peek && pk4, JSON.stringify(pk3));
     await p.close(); }
   // 古い記録（朝のせりの前）の途中経過は続きからに出さない・今日の結果は点で出す
   { const p = await fresh(ctx);
@@ -368,6 +373,8 @@ try {
     const r = await p.evaluate(() => { const A = __yk.ACH; __yk.save((s) => { s.st.wins = 3; s.st.nob = 1; }); const s = __yk.load(); return [A.length, A.filter((a) => a[3](s) >= a[4]).length]; });
     check("実績は10〜14個で、記録から数える", r[0] >= 10 && r[0] <= 14 && r[1] === 3, JSON.stringify(r));
     check("保存に失敗したあと別のタブが保存しても、両方の記録を合わせる", await p.evaluate((K) => { const s0 = __yk.load(); mem = JSON.stringify(Object.assign({}, s0, { t: 5, days: { "2000-01-01": { w: 1 } }, st: Object.assign({}, s0.st, { wins: 9 }) })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, days: { "2000-01-02": { w: 0 } } }))); const r2 = __yk.load(); mem = null; return !!r2.days["2000-01-01"] && !!r2.days["2000-01-02"] && r2.st.wins === 9; }, KEY));
+    check("合わせるとき、新しいほうの途中経過が古い記録（朝のせりの前）なら、もう一方の当てられる途中経過を残す", await p.evaluate((K) => { const s0 = __yk.load(); const good = { mode: "p", seed: 7, moves: [{ a: "bid", v: 0 }, { a: "bid", v: 0 }], id: "good1" }, bad = { mode: "p", seed: 7, moves: [{ a: "pass" }], id: "bad1" }; mem = JSON.stringify(Object.assign({}, s0, { t: 5, runs: { p: good } })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, runs: { p: bad } }))); const r = __yk.load().runs.p; mem = null; return !!r && r.id === "good1"; }, KEY));
+    check("再生で例外が出る途中経過（市場の番号が数でない）でもホームは開き、その途中経過は外す", await p.evaluate((K) => { const s0 = __yk.load(); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { runs: { p: { mode: "p", seed: 7, moves: [{ a: "bid", v: 0 }, { a: "bid", v: 0 }, { a: "pick", m: "length", i: 0 }], id: "x1" } } }))); let ok = true; try { __yk.home(); } catch (e) { ok = false; } return ok && __yk.load().runs.p === null && !__yk.Y.legal(__yk.Y.replay(7, [{ a: "bid", v: 0 }, { a: "bid", v: 0 }]), { a: "pick", m: "length", i: 0 }); }, KEY));
     await p.close(); }
 
   STEP = "店主の強さ";
