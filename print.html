@@ -48,7 +48,7 @@ th{font-weight:700}
 /* 札：切って使う。店札 34mm 角（盤のマスに乗る）・お金 30mm 角・印 20mm 丸 */
 .grid{display:grid;justify-content:center}
 .tiles{grid-template-columns:repeat(5,34mm);grid-auto-rows:34mm}
-.coins{grid-template-columns:repeat(6,28mm);grid-auto-rows:28mm}
+.coins{grid-template-columns:repeat(7,24mm);grid-auto-rows:24mm}
 .t{border:0.3mm dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.5mm;padding:1.5mm;overflow:hidden}
 .t .e{font-size:20pt;line-height:1.1}
 .t .nm{font-family:var(--display);font-weight:900;font-size:10pt}
@@ -60,6 +60,8 @@ th{font-weight:700}
 .coin .v{font-family:var(--display);font-weight:900;font-size:18pt}
 .coin.five .v{font-size:22pt}
 .coin.five{border-style:solid;border-width:0.6mm;border-color:var(--ink)}
+.coin.ten .v{font-size:20pt}
+.coin.ten{border-style:double;border-width:1.6mm;border-color:var(--ink)}
 .marks{grid-template-columns:repeat(8,22mm);grid-auto-rows:22mm}
 .mark{border-radius:50%;font-size:16pt;font-weight:900}
 .mark.a{color:var(--a);border:0.8mm solid var(--a)}
@@ -75,6 +77,12 @@ th{font-weight:700}
 .card .pt{position:absolute;top:1mm;right:1.5mm;font-size:8pt;font-weight:700}
 .loans{grid-template-columns:repeat(3,58mm);grid-auto-rows:26mm}
 .loan .nm{font-size:11pt}
+.loan.tok{border-width:0.8mm;border-color:var(--ink)}
+.loan.pawn.a .nm{color:var(--a)}
+.loan.pawn.b .nm{color:var(--b)}
+.meter{display:grid;grid-template-columns:repeat(10,1fr);border:0.4mm solid var(--ink)}
+.meter div{height:11mm;border:0.2mm solid var(--line);display:flex;align-items:flex-start;justify-content:flex-start;padding:0.6mm 1mm;font-size:8pt;font-weight:700}
+.meter div:nth-child(10n+1){background:#eef1ea}
 @page{size:A4;margin:0}
 @media print{
   body{background:#fff;padding:0}
@@ -101,7 +109,7 @@ th{font-weight:700}
 "use strict";
 const Y = window.YRK, S = Y.SHOPS;
 const foot = (n) => `<div class="foot"><span>やりくり商店街　https://satou-aaaaa.github.io/yarikuri-shotengai/</span><span>${n} / @@ALL@@</span></div>`;
-const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1（0より下にはならない）</span></div></div>`;
+const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1</span></div></div>`;
 // 奥付：売るときに箱・袋・説明書に要る表示（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）
 const colophon = () => `<div class="colophon" aria-label="奥付"><b>対象年齢 8歳以上・2人用・20〜30分</b>　⚠ 小さな部品があります。のみこむおそれがあるので、3歳未満のお子さまには与えないでください。<br>制作：satou-aaaaa　連絡先：https://github.com/satou-aaaaa/yarikuri-shotengai/issues　第1版 2026年<br>店の絵：Noto Color Emoji（Google。フォントは SIL Open Font License 1.1、絵は Apache License 2.0）</div>`;
 const days = Array.from({ length: Y.DAYS }, (_, i) => i + 1);
@@ -109,23 +117,24 @@ const pages = [];
 // 1. 説明書
 pages.push(`<section class="page" aria-label="説明書">
   <h2>やりくり商店街　説明書</h2>
-  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、10日目のおわりにお金が多いほうの勝ちです。</p>
+  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、お金と陣取りの点が多いほうの勝ちです。毎日の計算は「客メーターの数だけお金をもらう」だけです。</p>
   <div class="two"><div>
   <h3>じゅんび</h3>
   <ol>
     <li>盤をまん中に置きます。</li>
     <li>店札${Y.KINDS.length * Y.PER_KIND}枚を裏にしてよく混ぜ、山にします。</li>
-    <li>2人はそれぞれ、印（● か ◆）を12枚と、お金を${Y.START}💰持ちます。のこりのお金と借り札は「銀行」にします。</li>
-    <li>●の人が1日目に先に取ります。</li>
+    <li>2人はそれぞれ、印（● か ◆）を12枚・お金${Y.START}💰・客メーターのコマ1つ（0のマス）を持ちます。のこりのお金と借り札は「銀行」にします。</li>
+    <li>じゃんけんで勝った人が<b>優先札</b>を持ちます（この人はおわりに${Y.KOMI}点もらえます。囲碁のコミと同じ考え方）。</li>
   </ol>
   <h3>1日のながれ</h3>
   <ol>
     <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
+    <li><b>朝のせり</b>：2人は手の中にこっそりお金をにぎり、同時に開きます。多いほうが先に取り、にぎった分を銀行に払います（少ないほうは払いません）。同じなら、どちらも払わず優先札の人が先。そのあと優先札を相手にわたします。</li>
     <li><b>取る</b>：先の人から1人1枚ずつ、お金を払って店札を取り、盤の空き地に置いて、自分の印をのせます。取らずに「店番」をして銀行から1💰もらってもかまいません。</li>
+    <li><b>メーターを動かす</b>：置いた店の客の分だけ、自分のコマを進めます。となりの店の客が増えた・減ったら、その持ち主のコマも動かします（相手のコマもふくむ）。</li>
     <li><b>のこり</b>：だれも取らなかった店札は箱にもどします。</li>
-    <li><b>客を数える</b>：自分の店それぞれの客を数え、その数だけ銀行から💰をもらいます。</li>
+    <li><b>お金をもらう</b>：自分の客メーターの数だけ、銀行から💰をもらいます（数え直しはいりません）。</li>
     <li><b>利息</b>：借り札1枚につき1💰を銀行に払います。</li>
-    <li>次の日は、先に取る人が交代します。</li>
   </ol></div><div>
   <h3>借りる・返す</h3>
   <ul>
@@ -135,11 +144,14 @@ pages.push(`<section class="page" aria-label="説明書">
   </ul>
   <h3>おわり</h3>
   <ul>
-    <li>10日目の「利息」までやったらおしまい。</li>
-    <li>お金 − 返していない借り札×5 が多いほうの勝ち。同じなら、最後の日の客が多いほう。</li>
+    <li>10日目の「利息」までやったらおしまい。最後に1回だけ<b>陣取り</b>を数えます。</li>
+    <li><b>商店会</b>：上下左右でつながった自分の店（🏠住宅もふくむ）の、いちばん大きいかたまり1軒につき1点。</li>
+    <li><b>通り</b>：横5列・たて5列のそれぞれで、自分の店が相手より多ければ${Y.LINE_PT}点（同じならどちらも0）。</li>
+    <li>お金 − 返していない借り札×5 ＋ 陣取り ＋ コミ が多いほうの勝ち。同じなら、客メーターが多いほう。</li>
   </ul>
   <h3>例</h3>
   <p>☕喫茶のとなりに📚本屋と🍞パン屋があれば、喫茶の客は 1＋1＋1＝3。🏠住宅のとなりの🥕八百屋は 1＋2＝3。</p>
+  <p>メーター：自分の🍞パン屋のとなりに☕喫茶を置いたら、喫茶の客1＋1（パン屋）＝2、パン屋も +1。自分のコマを 2＋1＝3 進めます。相手の☕のとなりなら、相手のコマも動きます。</p>
   </div></div>
   ${ref()}
   <p style="font-size:8.5pt;color:var(--sub)">スマホやパソコンでも遊べます（1台を2人で回す対戦・となりの店主と1人で）。アプリでは、空き地ごとに客の増え方が出ます。</p>
@@ -162,19 +174,18 @@ pages.push(`<section class="page" aria-label="店札">
 </section>`);
 // 4. お金
 pages.push(`<section class="page" aria-label="お金">
-  <h2>お金（1💰×30枚・5💰×18枚）</h2>
-  <div class="grid coins">${Array.from({ length: 30 }, () => `<div class="t coin"><span class="v">1</span><span class="x">💰</span></div>`).join("")}${Array.from({ length: 18 }, () => `<div class="t coin five"><span class="v">5</span><span class="x">💰</span></div>`).join("")}</div>
+  <h2>お金（1💰×30枚・5💰×18枚・10💰×12枚）</h2>
+  <div class="grid coins">${Array.from({ length: 30 }, () => `<div class="t coin"><span class="v">1</span><span class="x">💰</span></div>`).join("")}${Array.from({ length: 18 }, () => `<div class="t coin five"><span class="v">5</span><span class="x">💰</span></div>`).join("")}${Array.from({ length: 12 }, () => `<div class="t coin ten"><span class="v">10</span><span class="x">💰</span></div>`).join("")}</div>
   <p style="font-size:8.5pt;color:var(--sub)">足りなくなったら、メモや別の小物で代わりにしてかまいません。</p>
   ${foot(4)}
 </section>`);
-// 5. 印・借り札・記録表
-pages.push(`<section class="page" aria-label="印・借り札・記録表">
-  <h2>印・借り札・記録表</h2>
+// 5. 印・借り札・優先札・客メーター
+pages.push(`<section class="page" aria-label="印・借り札・客メーター">
+  <h2>印・借り札・優先札・客メーター</h2>
   <div class="grid marks">${["a", "b"].flatMap((o) => Array.from({ length: 12 }, () => `<div class="t mark ${o}">${o === "a" ? "●" : "◆"}</div>`)).join("")}</div>
-  <div class="grid loans">${Array.from({ length: 6 }, () => `<div class="t loan"><span class="nm">借り札</span><span class="x">返すまで毎日 利息1💰。返すときは5💰</span></div>`).join("")}</div>
-  <h3>記録表（日ごとの客と利息）</h3>
-  <table><thead><tr><th>日</th>${days.map((d) => `<th>${d}</th>`).join("")}<th>おわり</th></tr></thead>
-  <tbody><tr><th>● 客</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>● 利息</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>◆ 客</th>${days.map(() => "<td></td>").join("")}<td></td></tr><tr><th>◆ 利息</th>${days.map(() => "<td></td>").join("")}<td></td></tr></tbody></table>
+  <div class="grid loans">${Array.from({ length: 6 }, () => `<div class="t loan"><span class="nm">借り札</span><span class="x">返すまで毎日 利息1💰。返すときは5💰</span></div>`).join("")}<div class="t loan tok"><span class="nm">優先札</span><span class="x">せりが同じ額なら、この札の人が先。せりのあと相手にわたす</span></div><div class="t loan pawn a"><span class="nm">● のコマ</span><span class="x">客メーターに置く</span></div><div class="t loan pawn b"><span class="nm">◆ のコマ</span><span class="x">客メーターに置く</span></div></div>
+  <h3>客メーター（自分の店の客の合計。日のおわりにこの数だけ💰をもらう）</h3>
+  <div class="meter">${Array.from({ length: 60 }, (_, i) => `<div>${i}</div>`).join("")}</div>
   ${foot(5)}
 </section>`);
 // 6. 上級ルール・2階の札
@@ -187,21 +198,21 @@ pages.push(`<section class="page" aria-label="上級ルール">
   <h3>行事の札（12枚）</h3>
   <ul>
     <li>じゅんび：よく混ぜて${Y.DAYS}枚を裏のまま横に並べ（のこりは箱へ）、1〜${Y.EV_SEE}枚目を表にします。左から1日目・2日目…の札です。</li>
-    <li>その日の札は、その日の「客を数える」「利息」で使います。</li>
+    <li>その日の札は、その日の「お金をもらう」「利息」で使います。どれも「〇〇の店1軒につき ±いくつ」なので、その日だけメーターの数に足し引きします（コマは動かしません）。</li>
     <li>日がおわるたびに、次の1枚を表にします（いつも今日とその先2日分が見えます）。</li>
-    <li>税・利息でお金が足りないときは、マイナスのまま続けます（記録表に書いておき、次からの入るお金で埋めます）。</li>
+    <li>税・利息でお金が足りないときは、マイナスのまま続けます（メモしておき、次からの入るお金で埋めます）。</li>
   </ul>
   </div><div>
   <h3>増築（2階建て）</h3>
   <ul>
     <li>自分の番に、店札を取るかわりに、自分の店（🏠住宅のぞく）1軒に「2F」の札をのせられます。</li>
-    <li>払うのはその店の値段（大通りでも +1 なし）。その店の客は毎日 +${Y.UP_ADD}。1軒に1回まで。</li>
-    <li>行事の札の「2倍」は、2階の分を足してから2倍にします（客${Y.SHOPS.yasai.base}の八百屋が2階建てなら、大売り出しの日は（${Y.SHOPS.yasai.base}＋${Y.UP_ADD}）×2＝${(Y.SHOPS.yasai.base + Y.UP_ADD) * 2}人）。</li>
+    <li>払うのはその店の値段（大通りでも +1 なし）。その店の客は +${Y.UP_ADD}（メーターを${Y.UP_ADD}進める）。1軒に1回まで。</li>
+    <li>陣取りでは、2階建ての店は2軒と数えます（商店会も通りも）。</li>
   </ul>
   <h3>秘密の目標（8枚）</h3>
   <ul>
     <li>じゅんび：よく混ぜて、1人2枚ずつ裏のまま取ります。相手に見せません。のこりは箱へ。</li>
-    <li>おわりに、満たしている目標の点を自分のお金に足して比べます。同じなら、最後の日の客（行事の札は入れずに数える）が多いほう。</li>
+    <li>おわりに、満たしている目標の点も足して比べます。同じなら、客メーター（行事の札は入れない）が多いほう。</li>
   </ul>
   </div></div>
   <h3>2Fの札（12枚）</h3>

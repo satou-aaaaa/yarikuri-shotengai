@@ -75,6 +75,7 @@ th{font-weight:700}
 .money th,.money td{height:7.4mm;padding:0.5mm 1mm;font-size:8.5pt}
 .money th:first-child{width:12mm}
 .money .left{background:#f4f6f1;font-weight:700}
+.endrow{font-size:9pt;margin:1mm 0 0 !important}
 @page{size:A4;margin:0}
 @media print{
   body{background:#fff;padding:0}
@@ -101,7 +102,7 @@ th{font-weight:700}
 "use strict";
 const Y = window.YRK, S = Y.SHOPS, NP = 4;
 const foot = (n) => `<div class="foot"><span>やりくり商店街（切る数の少ない版）　https://satou-aaaaa.github.io/yarikuri-shotengai/</span><span>${n} / ${NP}</span></div>`;
-const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1（0より下にはならない）</span></div></div>`;
+const ref = () => `<div class="ref"><b>お店のはたらき（となりは上下左右だけ）</b>${Y.KINDS.map((k) => `<div><span>${S[k].e}</span><span><b>${S[k].nm}</b> ${S[k].c}💰・客${S[k].base}：${S[k].txt}</span></div>`).join("")}<div><span>⚔</span><span>同じ種類の店が相手の店ととなり合うと、両方 −1</span></div></div>`;
 // 奥付：売るときに箱・袋・説明書に要る表示（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）
 const colophon = () => `<div class="colophon" aria-label="奥付"><b>対象年齢 8歳以上・2人用・20〜30分</b>　⚠ 小さな部品があります。のみこむおそれがあるので、3歳未満のお子さまには与えないでください。<br>制作：satou-aaaaa　連絡先：https://github.com/satou-aaaaa/yarikuri-shotengai/issues　第1版 2026年<br>店の絵：Noto Color Emoji（Google。フォントは SIL Open Font License 1.1、絵は Apache License 2.0）</div>`;
 const days = Array.from({ length: Y.DAYS }, (_, i) => i + 1);
@@ -109,23 +110,23 @@ const pages = [];
 // 1. 説明書
 pages.push(`<section class="page" aria-label="説明書">
   <h2>やりくり商店街　説明書</h2>
-  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、${Y.DAYS}日目のおわりにお金が多いほうの勝ちです。お金は記録表に鉛筆で書きます。</p>
+  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、${Y.DAYS}日目のおわりにお金と陣取りの点が多いほうの勝ちです。お金は記録表に鉛筆で書きます。</p>
   <div class="two"><div>
   <h3>じゅんび</h3>
   <ol>
     <li>盤をまん中に置き、●の人は「5」の列の側、◆の人は「1」の列の側にすわります。</li>
     <li>店札${Y.KINDS.length * Y.PER_KIND}枚を裏にしてよく混ぜ、山にします。</li>
     <li>記録表の「はじめ」の「のこり」に、2人とも${Y.START}と書きます。</li>
-    <li>●の人が1日目に先に取ります。</li>
+    <li>じゃんけんで勝った人が<b>優先札</b>（消しゴムなど、何か1つ）を持ちます。この人はおわりに${Y.KOMI}点もらえます（囲碁のコミと同じ考え方）。</li>
   </ol>
   <h3>1日のながれ</h3>
   <ol>
     <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
+    <li><b>朝のせり</b>：出す額をこっそり書いて同時に見せ、多いほうが先に取り、その額を「せり」に書きます（少ないほうは払わない）。同じなら、どちらも払わず優先札の人が先。そのあと優先札を相手へ。</li>
     <li><b>取る</b>：先の人から1人1枚ずつ、店札を取って値段を「買う」に書き、盤の空き地に置きます。<b>自分の印（● か ◆）を盤の下側（● の人の側）に向けて</b>置きます。盤の下側（● の人の側）のふちにある印が、その店の持ち主です。取らずに「店番」をして1💰もらってもかまいません。</li>
     <li><b>のこり</b>：だれも取らなかった店札は箱にもどします。</li>
-    <li><b>客を数える</b>：自分の店それぞれの客を数え、合計を「客」に書きます。</li>
+    <li><b>客メーター</b>：「客」には、前の日の客に、今日置いた店で増えた・減った分を足して書きます（相手の客が変わることもあります）。毎日数え直さなくてよいです。</li>
     <li><b>利息</b>：借りている数×1💰を「利息」に書き、「のこり」を計算して書きます。</li>
-    <li>次の日は、先に取る人が交代します。</li>
   </ol></div><div>
   <h3>借りる・返す</h3>
   <ul>
@@ -134,11 +135,12 @@ pages.push(`<section class="page" aria-label="説明書">
     <li>返すまで、毎日 利息がかかります。早めに返すほど得です。</li>
   </ul>
   <h3>お金の書き方</h3>
-  <p>のこり ＝ 前の日ののこり − 買う ＋ 店番 ＋ 借りる − 返す ＋ 客 − 利息。のこりより高い店は買えません（先に借りれば買えます）。</p>
+  <p>のこり ＝ 前の日ののこり − せり − 買う ＋ 店番 ＋ 借りる − 返す ＋ 客 − 利息。のこりより高い店は買えません（先に借りれば買えます）。</p>
   <h3>おわり</h3>
   <ul>
     <li>${Y.DAYS}日目の「利息」までやったらおしまい。</li>
-    <li>のこり − 借り×${Y.LOAN} が多いほうの勝ち。同じなら、最後の日の客が多いほう。</li>
+    <li><b>陣取り</b>：つながった自分の店のいちばん大きいかたまり1軒につき1点（商店会）。横5列・たて5列のそれぞれで、店が相手より多ければ${Y.LINE_PT}点（通り）。</li>
+    <li>のこり − 借り×${Y.LOAN} ＋ 陣取り ＋ コミ が多いほうの勝ち。同じなら、最後の日の客が多いほう。</li>
   </ul>
   </div></div>
   ${ref()}
@@ -162,13 +164,14 @@ pages.push(`<section class="page" aria-label="店札">
   ${foot(3)}
 </section>`);
 // 4. 記録表（お金は鉛筆で書く）
-const sheet = (o) => `<h3>${o} の人</h3><table class="money"><thead><tr><th>日</th><th>買う −</th><th>店番 ＋</th><th>借りる ＋</th><th>返す −</th><th>客 ＋</th><th>利息 −</th><th>のこり</th><th>借り</th></tr></thead>
-  <tbody><tr><th>はじめ</th><td></td><td></td><td></td><td></td><td></td><td></td><td class="left">${Y.START}</td><td>0</td></tr>${days.map((d) => `<tr><th>${d}</th><td></td><td></td><td></td><td></td><td></td><td></td><td class="left"></td><td></td></tr>`).join("")}</tbody></table>`;
+const sheet = (o) => `<h3>${o} の人</h3><table class="money"><thead><tr><th>日</th><th>せり −</th><th>買う −</th><th>店番 ＋</th><th>借りる ＋</th><th>返す −</th><th>客 ＋</th><th>利息 −</th><th>のこり</th><th>借り</th></tr></thead>
+  <tbody><tr><th>はじめ</th><td></td><td></td><td></td><td></td><td></td><td>0</td><td></td><td class="left">${Y.START}</td><td>0</td></tr>${days.map((d) => `<tr><th>${d}</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="left"></td><td></td></tr>`).join("")}</tbody></table>
+  <p class="endrow">おわり：のこり ＿＿ − 借り×${Y.LOAN} ＿＿ ＋ 商店会 ＿＿ ＋ 通り ＿＿ ＋ コミ ＿＿ ＝ ＿＿＿</p>`;
 pages.push(`<section class="page" aria-label="記録表">
   <h2>記録表（お金は鉛筆で書く）</h2>
   ${sheet("●")}
   ${sheet("◆")}
-  <p style="font-size:8.5pt;color:var(--sub)">何回も遊ぶときは、この紙をコピーして使います。おわり：のこり − 借り×${Y.LOAN}</p>
+  <p style="font-size:8.5pt;color:var(--sub)">何回も遊ぶときは、この紙をコピーして使います。</p>
   ${foot(4)}
 </section>`);
 document.getElementById("sheets").innerHTML = pages.join("");
