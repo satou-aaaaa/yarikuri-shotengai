@@ -5,8 +5,8 @@ name: Auto merge
 # Secret scan を入れたリポジトリは workflows に Secret scan、require_checks に scan / scan を足す。
 on:
   workflow_run:
-    # Setup check（準備のファイルを変えた PR だけで動く）が終わったときにも判定し直す。Secret scan を入れたら [QA, Setup check, Secret scan]
-    workflows: [QA, Setup check]
+    # Setup check（準備のファイルを変えた PR だけで動く）・Secret scan が終わったときにも判定し直す
+    workflows: [QA, Setup check, Secret scan]
     types: [completed]
 
 permissions:

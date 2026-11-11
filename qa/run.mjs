@@ -59,7 +59,7 @@ const KEY = "yrk-v1";
   check("返すと5💰減って借りが1枚へる", g.p.a.money === Y.START + 10 && g.p.a.loans === 2);
   Y.apply(g, { a: "pass" }); const m0 = g.p.a.money; Y.apply(g, { a: "pass" });
   check("日のおわりに、借り1枚につき利息1💰（客0なら）・先に取る人は日ごとに交代", g.p.a.money === m0 - 2 && g.day === 2 && g.turn === "b" && g.p.a.interest === 2);
-  check("お金の足りない店札・埋まったマスには置けない", !Y.legal(Y.newGame(5), { a: "pick", m: 0, i: -1 }) && (() => { const h = Y.newGame(5); h.p.a.money = 0; return Y.KINDS.every(() => !Y.legal(h, { a: "pick", m: 0, i: 0 })); })());
+  check("お金の足りない店札・埋まったマスには置けない", !Y.legal(Y.newGame(5), { a: "pick", m: 0, i: -1 }) && (() => { const h = Y.newGame(5); h.p.a.money = 0; return !Y.legal(h, { a: "pick", m: 0, i: 0 }); })() && (() => { const h = Y.newGame(5); h.p.a.money = 99; h.board[0] = { t: "ie", o: "b" }; return !Y.legal(h, { a: "pick", m: 0, i: 0 }) && Y.legal(h, { a: "pick", m: 0, i: 1 }); })());
 
   // 1000局：AI どうし・強さ・先手の有利・作り直し
   const greedy = (x) => { const me = x.turn, p = x.p[me]; let best = null; for (let m = 0; m < 3; m++) { const t = x.market[m]; if (!t || Y.SHOPS[t].c > p.money) continue; for (let i = 0; i < 25; i++) { if (x.board[i]) continue; const v = Y.delta(x.board, t, i, me).me * Y.daysLeft(x) - Y.SHOPS[t].c; if (!best || v > best.v) best = { v, m, i }; } } return best && best.v > 0 ? { a: "pick", m: best.m, i: best.i } : { a: "pass" }; };
@@ -118,7 +118,8 @@ const print = readFileSync(path.join(root, "print.html"), "utf8");
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const errors = [];
 const watch = (p) => { p.on("pageerror", (e) => errors.push(String(e))); return p; };
-const fresh = async (ctx) => { const p = watch(await ctx.newPage()); await p.goto(url); await p.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 1, tut: true })); }, KEY); await p.reload(); return p; };
+// at：日付を決めて開く（はじめの日のすぐ後は「あとから」の日が無く、検査が空回りするため）
+const fresh = async (ctx, at) => { const p = watch(await ctx.newPage()); if (at) await p.clock.setFixedTime(new Date(at)); await p.goto(url); await p.evaluate((k) => { localStorage.clear(); localStorage.setItem(k, JSON.stringify({ v: 1, tut: true })); }, KEY); await p.reload(); return p; };
 const step1 = async (p) => { const c = await p.$(".card[data-m]:not([disabled])"); if (c) { await c.click(); await p.click(".cell.can"); } else await p.click("#pass"); };
 // 人の番を、置ける店札のうち最初の1枚を最初の空き地に置いて進める（店主の番は待つ）
 const playOut = async (p, limit = 400) => {
@@ -191,14 +192,18 @@ try {
     await q.close(); await p.close(); }
 
   STEP = "あとから（7日前まで）";
-  // あとから（7日前まで）
-  { const p = await fresh(ctx);
+  // あとから（7日前まで）。はじめの日から3日後に開き、あとからの日が必ずある日で確かめる
+  { const p = await fresh(ctx, "2026-11-14T12:00:00+09:00");
     const late = await p.$$eval("[data-late]", (a) => a.map((b) => b.dataset.late));
     const t = await p.evaluate(() => __yk.todayKey());
     const okRange = late.every((d) => d < t && Date.parse(t) - Date.parse(d) <= 7 * 864e5 && d >= "2026-11-11");
     let rec = true;
-    if (late.length) { await p.click(`[data-late="${late[0]}"]`); const m = await p.evaluate(() => __yk.G.market.join(",")); await playOut(p); const s = await p.evaluate(() => __yk.load()); rec = m === Y.deckOf(Y.seedOfDate(late[0])).slice(0, 3).join(",") && !!s.adays[late[0]] && Object.keys(s.days).length === 0 && JSON.stringify(s.kofi) === "{}"; }
-    check("あとから：7日前まで・始めた日より後だけ。その日の盤で遊べ、今日の記録・連続・Ko-fi に入れない", okRange && rec, late.join(","));
+    // 途中の日の ▶ をもう一度押しても、進めた手が消えない（PR #1 の CodeRabbit）
+    let keep = true;
+    if (late.length) { await p.click(`[data-late="${late[0]}"]`); await step1(p); const n1 = await p.evaluate(() => __yk.load().runs.a.moves.length); await p.evaluate(() => __yk.home()); await p.click(`[data-late="${late[0]}"]`); keep = n1 > 0 && (await p.evaluate(() => __yk.RUN.moves.length)) === n1; await p.evaluate(() => __yk.home()); }
+    check("あとから：途中の日の ▶ を押すと続きから（進めた手が残る）", keep, late.join(","));
+    if (late.length) { await p.click(`[data-late="${late[0]}"]`); const m = await p.evaluate(() => __yk.G.deck.slice(0, 3).join(",")); await playOut(p); const s = await p.evaluate(() => __yk.load()); rec = m === Y.deckOf(Y.seedOfDate(late[0])).slice(0, 3).join(",") && !!s.adays[late[0]] && Object.keys(s.days).length === 0 && JSON.stringify(s.kofi) === "{}"; }
+    check("あとから：7日前まで・始めた日より後だけ。その日の盤で遊べ、今日の記録・連続・Ko-fi に入れない", late.length === 3 && okRange && rec, late.join(","));
     await p.close(); }
 
   STEP = "実績・記録の合わせ方";

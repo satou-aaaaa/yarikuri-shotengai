@@ -392,7 +392,8 @@ function home() {
   if ($("go-d")) $("go-d").onclick = () => (dRun ? resume("d") : start("d", t));
   $("go-p").onclick = () => (pRun ? resume("p") : start("p", null));
   if (aRun) $("go-a").onclick = () => resume("a");
-  document.querySelectorAll("[data-late]").forEach((b) => (b.onclick = () => start("a", b.dataset.late)));
+  // 同じ日の途中の回があれば続きから（新しく始めると進めた手が消える。PR #1 の CodeRabbit）
+  document.querySelectorAll("[data-late]").forEach((b) => (b.onclick = () => (aRun && aRun.date === b.dataset.late ? resume("a") : start("a", b.dataset.late))));
   if (!s.tut) openHow();
 }
 
