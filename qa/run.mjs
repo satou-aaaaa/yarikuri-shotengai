@@ -65,14 +65,15 @@ const KEY = "yrk-v1";
     const t = B(); for (const i of [0, 1, 2, 7]) t[i] = { t: "ie", o: "a" }; t[4] = { t: "hon", o: "a" }; t[3] = { t: "pan", o: "b" }; t[8] = { t: "pan", o: "b" }; t[13] = { t: "pan", o: "b" };
     check("陣取り：商店会はつながった自分の店のいちばん大きいかたまりの軒数（ななめはつながらない）", Y.groupOf(t, "a") === 4 && Y.groupOf(t, "b") === 3, `${Y.groupOf(t, "a")}/${Y.groupOf(t, "b")}`);
     // 横1列目 a4・b1 → a。横2列目 a1・b1 → なし。横3列目 b1 → b。たて：0,1,2列 a、3列 b（3,8,13）、4列 a1(4)
-    check("陣取り：通りは横5列・たて5列で店の多いほうに " + Y.LINE_PT + "点（同じならなし）", Y.linesOf(t, "a") === 5 && Y.linesOf(t, "b") === 2 && Y.terr(t, "a") === 4 + 5 * Y.LINE_PT, `${Y.linesOf(t, "a")}/${Y.linesOf(t, "b")}`);
+    check("通り：横5列・たて5列で、店が多い列の数（同じ列はどちらでもない）", Y.linesOf(t, "a") === 5 && Y.linesOf(t, "b") === 2, `${Y.linesOf(t, "a")}/${Y.linesOf(t, "b")}`);
     const u = B(); u[0] = { t: "pan", o: "a", up: true }; u[1] = { t: "pan", o: "b" }; u[2] = { t: "pan", o: "b" }; u[5] = { t: "hon", o: "a" };
     check("陣取り：2階建ての店は2軒と数える", Y.groupOf(u, "a") === 3 && Y.linesOf(u, "a") === 2 && Y.linesOf(u, "b") === 2, `${Y.groupOf(u, "a")}/${Y.linesOf(u, "a")}/${Y.linesOf(u, "b")}`);
     const g = Y.newGame(77); g.board = t;
-    g.p.a.loans = 2; g.p.a.money = 9;
-    check("おわりの点＝客1人1点＋陣取り＋お金−借り×" + Y.LOAN_PT + "＋コミ（基本：はじめに優先札を持った人に " + Y.KOMI + "点）", ["a", "b"].every((o) => Y.score(g, o) === Y.income(t, o) + Y.terr(t, o) + g.p[o].money - Y.LOAN_PT * g.p[o].loans + (o === Y.tok0(77) ? Y.KOMI : 0)) && Y.komiOf(g, Y.tok0(77)) === Y.KOMI && Y.komiOf(g, Y.other(Y.tok0(77))) === 0);
-    const ga = Y.newGame(77, { adv: true }); ga.board = t;
-    check("上級はコミなし（KOMI_ADV）・点の内わけ scoreParts の合計が score", Y.komiOf(ga, Y.tok0(77)) === Y.KOMI_ADV && ["a", "b"].every((o) => { const q = Y.scoreParts(ga, o); return q.cust + q.terr + q.money + q.loan + q.goal + q.komi === Y.score(ga, o); }));
+    const c = Y.cats(g);
+    check("3つの勝負：客・通り・商店会をそれぞれ比べ、2つ勝ったほうの勝ち（score は勝った数）", c.cust.a === Y.income(t, "a") && c.line.a === 5 && c.group.a === 4 && ["a", "b"].every((o) => Y.score(g, o) === Y.CATS.filter((k) => c[k].w === o).length) && Y.score(g, "a") + Y.score(g, "b") === 3 && Y.winner(g) === (Y.score(g, "a") >= 2 ? "a" : "b"), JSON.stringify(c));
+    const e = Y.newGame(77); e.board = Array(25).fill(null); e.board[0] = { t: "hon", o: "a" }; e.board[24] = { t: "hon", o: "b" };
+    const tie1 = Y.cats(e); e.p.a.money = 3; e.p.b.money = 5; const tie2 = Y.cats(e);
+    check("引き分けた勝負は、残ったお金が多いほう、それも同じなら、はじめに優先札を持った人の勝ち（引き分けは無い）", Y.CATS.every((k) => tie1[k].tie && tie1[k].w === Y.tok0(77) && tie2[k].w === "b") && Y.winner(e) === "b", JSON.stringify([tie1, tie2]));
   }
   b = B(); b[6] = { t: "pan", o: "a" };
   const d = Y.delta(b, "cafe", 7, "b");
@@ -80,20 +81,16 @@ const KEY = "yrk-v1";
 
   // 朝のせりを2人とも0で済ませ、優先札の1Pから札を取る形にする（きまりの検査用）
   const toPlay = (g) => { g.tok = "a"; Y.apply(g, { a: "bid", v: 0 }); Y.apply(g, { a: "bid", v: 0 }); return g; };
-  // 借りる・返す・利息・おわり
+  // 借りることはできない・日のおわり
   const g = Y.newGame(123);
-  const ok1 = Y.apply(g, { a: "borrow" }) && Y.apply(g, { a: "borrow" }) && Y.apply(g, { a: "borrow" });
-  const no4 = !Y.apply(g, { a: "borrow" });
-  check("借りるのは3枚まで・1枚で5💰", ok1 && no4 && g.p.a.money === Y.START + 15 && g.p.a.loans === 3);
-  Y.apply(g, { a: "repay" });
-  check("返すと5💰減って借りが1枚へる", g.p.a.money === Y.START + 10 && g.p.a.loans === 2);
+  check("借りる・返すはできない（2026-11-12 借り札をやめた）", !Y.legal(g, { a: "borrow" }) && !Y.legal(g, { a: "repay" }) && !Y.legal(toPlay(Y.newGame(123)), { a: "borrow" }));
   toPlay(g); Y.apply(g, { a: "pass" }); const m0 = g.p.a.money; Y.apply(g, { a: "pass" });
-  check("日のおわりは2人とも決まった額（" + Y.ALLOW + "💰）だけ。利息は無い・次の日は朝のせりから", g.p.a.money === m0 + Y.ALLOW && g.p.b.money === Y.START + 1 + Y.ALLOW && g.day === 2 && g.phase === "bid" && g.turn === "a" && !("interest" in g.p.a));
+  check("日のおわりは2人とも決まった額（" + Y.ALLOW + "💰）だけ。利息は無い・次の日は朝のせりから", g.p.a.money === m0 + Y.ALLOW && g.p.b.money === Y.START + 1 + Y.ALLOW && g.p.a.money === Y.START + 1 + Y.ALLOW && g.day === 2 && g.phase === "bid" && g.turn === "a" && !("interest" in g.p.a));
   { const h = Y.newGame(5); h.board[12] = { t: "hon", o: "a" }; h.board[13] = { t: "hon", o: "a" }; toPlay(h); const m1 = h.p.a.money; Y.apply(h, { a: "pass" }); Y.apply(h, { a: "pass" });
     check("日のおわりにもらうお金は客の数で変わらない（毎日の計算なし）", h.p.a.money === m1 + 1 + Y.ALLOW && h.log.filter((x) => x.a === "day").pop().inc.a === Y.ALLOW); }
   // 朝のせり（2026-11-11 satouさん「先攻後攻の有利不利が出ないように」）
   { const h = Y.newGame(9); h.tok = "b";
-    const pre = !Y.legal(h, { a: "pick", m: 0, i: 0 }) && !Y.legal(h, { a: "pass" }) && !Y.legal(h, { a: "bid", v: Y.START + 1 }) && !Y.legal(h, { a: "bid", v: -1 }) && !Y.legal(h, { a: "bid", v: 1.5 }) && Y.legal(h, { a: "borrow" });
+    const pre = !Y.legal(h, { a: "pick", m: 0, i: 0 }) && !Y.legal(h, { a: "pass" }) && !Y.legal(h, { a: "bid", v: Y.START + 1 }) && !Y.legal(h, { a: "bid", v: -1 }) && !Y.legal(h, { a: "bid", v: 1.5 });
     Y.apply(h, { a: "bid", v: 2 }); Y.apply(h, { a: "bid", v: 1 });
     check("朝のせり：せりの間は札を取れない・額はお金の中の整数・多く出した人が先でその額だけ払う（もう一方は払わない）", pre && h.phase === "play" && h.turn === "a" && h.p.a.money === Y.START - 2 && h.p.b.money === Y.START && h.tok === "a");
     const k = Y.newGame(9); k.tok = "b"; Y.apply(k, { a: "bid", v: 3 }); Y.apply(k, { a: "bid", v: 3 });
@@ -107,26 +104,21 @@ const KEY = "yrk-v1";
   // 1000局：AI どうし・強さ・先手の有利・作り直し
   const greedy = (x) => { if (x.phase === "bid") return { a: "bid", v: 0 }; const me = x.turn; let best = null; for (let m = 0; m < 3; m++) { const t = x.market[m]; if (!t) continue; for (let i = 0; i < 25; i++) { if (!Y.legal(x, { a: "pick", m, i })) continue; const v = Y.delta(x.board, t, i, me).me; if (!best || v > best.v) best = { v, m, i }; } } return best && best.v >= 2 ? { a: "pick", m: best.m, i: best.i } : { a: "pass" }; }; // 目の前の客だけを見て、2人以上ふえる所に置く
   const play = (fa, fb, seed) => { const x = Y.newGame(seed), mv = []; let n = 0; while (!x.over && n++ < 300) { const m = (x.turn === "a" ? fa : fb)(x); if (!Y.apply(x, m)) return { bad: JSON.stringify(m) }; mv.push(m); } return { x, mv, n }; };
-  let bad = "", loop = 0, rep = true, an = 0, bn = 0, nWin = 0, eBorrow = 0, nBorrow = 0;
+  let bad = "", loop = 0, rep = true, an = 0, bn = 0, nWin = 0;
   for (let s = 1; s <= 1000; s++) {
     const r = play((x) => Y.aiMove(x, "normal"), (x) => Y.aiMove(x, "normal"), s * 7919);
     if (r.bad) { bad = r.bad; break; }
     if (!r.x.over) loop++;
     if (s <= 100 && JSON.stringify(Y.replay(s * 7919, r.mv).p) !== JSON.stringify(r.x.p)) rep = false;
     const w = Y.winner(r.x); if (w === "a") an++; else if (w === "b") bn++;
-    nBorrow += r.x.p.a.borrowed;
     const e = play((x) => Y.aiMove(x, "easy"), (x) => Y.aiMove(x, "normal"), s * 104729);
     if (e.bad || !e.x.over) { bad = bad || "easy"; break; }
     if (Y.winner(e.x) === "b") nWin++;
-    eBorrow += e.x.p.a.borrowed;
   }
-  check("店主どうしの1000局：できない手を出さず、どれも10日で終わる（借りる⇔返すをくり返さない）", !bad && loop === 0, bad || `${loop}局が終わらない`);
+  check("店主どうしの1000局：できない手を出さず、どれも10日で終わる", !bad && loop === 0, bad || `${loop}局が終わらない`);
   check("種と手の並びから作り直すと同じ結果（続きから・古いタブの照らし合わせ）", rep);
   check("1Pと2Pの勝ちはどちらも45〜55%（朝のせりで先に取る人を決める）", an >= 450 && an <= 550 && bn >= 450 && bn <= 550, `1P ${an}・2P ${bn}`);
-  // 2026-11-12 おわりに1回だけ数える形：借りると 5💰 入り、返さないと 7点へる。良い店を先に取るためだけに使う札で、借りる店主が強すぎない（下の 40〜65%）
-  check("ふつうの店主は、やさしい店主に7割以上勝ち、ときどき借りる（やさしい店主は借りない）", nBorrow > 50 && eBorrow === 0 && nWin >= 700, `ふつうの借り ${nBorrow}・やさしいの借り ${eBorrow}・ふつうの勝ち ${nWin}`);
-  { const noB = (x) => { const m = Y.aiMove(x, "normal"); return m.a === "borrow" ? { a: "pass" } : m; }; let bw = 0; for (let s = 1; s <= 300; s++) { const r = s % 2 ? play(noB, (x) => Y.aiMove(x, "normal"), s * 137) : play((x) => Y.aiMove(x, "normal"), noB, s * 137); if (Y.winner(r.x) === (s % 2 ? "b" : "a")) bw++; }
-    check("借りる店主と借りない店主は五分くらい（借りるのは手のひとつで、強すぎない。40〜65%）", bw >= 120 && bw <= 195, `${bw}/300`); }
+  check("ふつうの店主は、やさしい店主に55%以上勝つ", nWin >= 550, `ふつうの勝ち ${nWin}/1000`);
   let gw = 0; for (let s = 1; s <= 300; s++) { const r = play(greedy, (x) => Y.aiMove(x, "easy"), s * 31); if (Y.winner(r.x) === "a") gw++; }
   check("やさしい店主は、目の前の客だけを見る遊び方に負けすぎず、勝ちすぎない（相手の勝ち 10〜50%）", gw >= 30 && gw <= 150, `${gw}/300`);
 }
@@ -159,10 +151,11 @@ const KEY = "yrk-v1";
     check("上級：給料日のおわりは2人とも +" + (Y.ALLOW + 2) + "💰", h.p.a.money === ma + Y.ALLOW + 2 && h.p.b.money === Y.START + 1 + Y.ALLOW + 2);
     check("上級：行事の札の文に「客」を変える言葉が無い（点はおわりに1回だけ）", Y.EV_KEYS.every((k) => !/客/.test(Y.EVENTS[k].txt)), Y.EV_KEYS.filter((k) => /客/.test(Y.EVENTS[k].txt)).join(",")); }
   { const g = Y.newGame(3, A); g.goals.a = ["homes", "noloan"]; for (const i of [0, 1, 2]) g.board[i] = { t: "ie", o: "a" };
-    check("上級：満たした目標の点がおわりの数に入る", Y.goalPts(g, "a") === Y.GOALS.homes.pt + Y.GOALS.noloan.pt && Y.score(g, "a") === g.p.a.money + Y.income(g.board, "a", true) + Y.GOALS.homes.pt + Y.GOALS.noloan.pt + Y.terr(g.board, "a") + Y.komiOf(g, "a") && Y.score(Y.newGame(3), "a") === Y.START + Y.komiOf(Y.newGame(3), "a")); }
+    g.goals.a = ["homes", "main"]; for (const i of Y.MAIN.slice(0, 3)) g.board[i] = { t: "pan", o: "a" };
+    check("上級：満たした目標の数が「客」の勝負に入る", Y.goalPts(g, "a") === Y.GOALS.homes.pt + Y.GOALS.main.pt && Y.cats(g).cust.a === Y.income(g.board, "a", true) + Y.GOALS.homes.pt + Y.GOALS.main.pt); }
   const play = (fa, fb, seed) => { const x = Y.newGame(seed, A), mv = []; let n = 0; while (!x.over && n++ < 300) { const m = (x.turn === "a" ? fa : fb)(x); if (!Y.apply(x, m)) return { bad: JSON.stringify(m) }; mv.push(m); } return { x, mv }; };
-  const N = (x) => Y.aiMove(x, "normal"), noUp = (x) => { const m = Y.aiMove(x, "normal"); return m.a === "up" ? { a: "pass" } : m; }, noB = (x) => { const m = Y.aiMove(x, "normal"); return m.a === "borrow" ? { a: "pass" } : m; };
-  let bad = "", loop = 0, rep = true, an = 0, bn = 0, ups = 0, goals = new Set(), upW = 0, bW = 0;
+  const N = (x) => Y.aiMove(x, "normal"), noUp = (x) => { const m = Y.aiMove(x, "normal"); return m.a === "up" ? { a: "pass" } : m; };
+  let bad = "", loop = 0, rep = true, an = 0, bn = 0, ups = 0, goals = new Set(), upW = 0;
   for (let s = 1; s <= 1000; s++) {
     const r = play(N, N, s * 7919);
     if (r.bad) { bad = r.bad; break; }
@@ -171,13 +164,11 @@ const KEY = "yrk-v1";
     const w = Y.winner(r.x); if (w === "a") an++; else if (w === "b") bn++;
     ups += r.mv.filter((m) => m.a === "up").length;
     for (const o of ["a", "b"]) for (const k of r.x.goals[o]) { const [h, n] = Y.goalProg(r.x, o, k); if (h >= n) goals.add(k); }
-    if (s <= 500) { const u = s % 2 ? play(noUp, N, s * 131) : play(N, noUp, s * 131); if (Y.winner(u.x) === (s % 2 ? "b" : "a")) upW++;
-      const b = s % 2 ? play(noB, N, s * 137) : play(N, noB, s * 137); if (Y.winner(b.x) === (s % 2 ? "b" : "a")) bW++; }
+    if (s <= 500) { const u = s % 2 ? play(noUp, N, s * 131) : play(N, noUp, s * 131); if (Y.winner(u.x) === (s % 2 ? "b" : "a")) upW++; }
   }
   check("上級：店主どうしの1000局で、できない手を出さず10日で終わり、作り直すと同じ", !bad && loop === 0 && rep, bad || `${loop}局が終わらない`);
   check("上級：1Pと2Pの勝ちはどちらも45〜55%", an >= 450 && an <= 550 && bn >= 450 && bn <= 550, `1P ${an}・2P ${bn}`);
   check("上級：増築に意味がある（増築する店主が、しない店主に52%以上・80%以下で勝つ。強すぎない）", upW >= 260 && upW <= 400, `${upW}/500`);
-  check("上級：借りる店主と借りない店主は五分くらい（40〜65%）", bW >= 200 && bW <= 325, `${bW}/500`);
   check("上級：増築が使われ、8つの目標はどれも満たされることがある", ups > 500 && goals.size === 8, `増築 ${ups}・目標 ${[...goals].join(",")}`);
 }
 
@@ -198,8 +189,10 @@ const print = readFileSync(path.join(root, "print.html"), "utf8"), lite = readFi
     check("朝のせり：お金がマイナスでも0は出せる（借りきって返せなくても次の日へ進める）。1以上は出せない", Y.legal(g, { a: "bid", v: 0 }) && !Y.legal(g, { a: "bid", v: 1 }));
     const ok = Y.replay(7, [{ a: "bid", v: 0 }, { a: "bid", v: 0 }]), old = Y.replay(7, [{ a: "pass" }, { a: "pass" }]);
     check("当てられない手（朝のせりの前の古い記録）で止まると bad にその番号が残る", ok.bad === undefined && old.bad === 0); }
-    check("同点のときは客の多いほうの勝ち（説明書と画面に書く）", /function winner[^}]*income\(g\.board, "a", g\.adv\)/.test(readFileSync(path.join(root, "rules.js"), "utf8")) && print.includes("同じ点なら、客の多いほう") && html.includes("同じ点なら、客の多いほう"));
-    check("説明書と画面に、利息・客メーターの言葉が残っていない（2026-11-12 おわりに1回だけ数える形）", ![html, print, lite].some((h) => /毎日 ?利息|利息1|利息を|客メーター/.test(h)));
+    check("3つの勝負で2つ勝ったほうの勝ち・引き分けはお金→優先札（説明書・少ない版・画面に書く）", [print, lite, html].every((h) => h.includes("2つ勝ったほうの勝ち") && /引き分けた勝負は、(残ったお金|のこり)が多いほう/.test(h)));
+    check("説明書と画面に、利息・客メーター・借り札・コミの言葉が残っていない（2026-11-12 3つの勝負の形）", ![html, print, lite].some((h) => /利息|客メーター|借り札|返していない借り|コミ/.test(h)));
+    check("説明書と画面に、点の多さで勝つという古い勝ち方が残っていない（2026-11-12 CodeRabbit がホームと簡易版の冒頭で見つけた）", ![html, print, lite].some((h) => /陣取りの点|点が多いほう/.test(h)));
+    check("きまりが変わった実績は、古い記録の数を流用しない（nob・lwin・rich は使わない。2026-11-12）", !/st\.(nob|lwin|rich)\b|\["(nob|lwin|rich)"/.test(html));
   }
   check("チケット・回数制限・🔒で開くモードを入れない", !/🎫|チケット|ライフ|スタミナ|で開く|解放/.test(html));
   check("画面にお笑いの言葉を入れない", !/お笑い|ギャグ|ボケ|ツッコミ|なんでやねん/.test(html + print + lite));
@@ -288,8 +281,8 @@ try {
     check("今日の盤：市場はだれでも同じ日付の並び・10日まで遊べて、今日の記録に残る", firstMarket === want && done && !!s.days[t] && s.st.games === 1, `${firstMarket} / ${want}`);
     await p.click("#home2");
     check("今日の盤を終えたら、ホームに結果が出て、今日はもう始められない", !(await p.$("#go-d")) && /今日の盤：/.test(await p.textContent("main")));
-    { const m = (await p.textContent("main")).match(/今日の盤：[^（]*（(?:上級・)?(-?\d+)点 対 (-?\d+)点）/);
-      check("ホームの今日の結果は、おわりの点（お金でなく点）で、記録の点と同じ", !!m && Number(m[1]) === s.days[t].s && Number(m[2]) === s.days[t].o, m ? m[0] : ""); }
+    { const m = (await p.textContent("main")).match(/今日の盤：[^（]*（(?:上級・)?([0-3])勝 対 ([0-3])勝）/);
+      check("ホームの今日の結果は、勝った勝負の数（N勝 対 M勝）で、記録と同じ", !!m && Number(m[1]) === s.days[t].s && Number(m[2]) === s.days[t].o, m ? m[0] : ""); }
     { const r = await p.evaluate(() => { const Y = __yk.Y, out = { n: 0, bad: 0 };
         for (let sd = 1; sd <= 20; sd++) for (const adv of [false, true]) { const g = Y.newGame(sd, { adv }), moves = []; let k = 0; while (!g.over && k++ < 400) { const mv = Y.aiMove(g, "normal"); moves.push(mv); Y.apply(g, mv); }
           let ex = 0; { const h = Y.newGame(sd, { adv }); for (const mv of moves) { const n = h.log.length; Y.apply(h, mv); if (h.log.slice(n).some((L) => L.a === "day")) ex = Math.max(ex, Y.income(h.board, "a", adv)); } }
@@ -359,7 +352,7 @@ try {
     const q = watch(await ctx.newPage()); await q.goto(url); await q.click("#go-p");
     await stepTo(q, 6);
     const qn = await q.evaluate(() => __yk.RUN.moves.length);
-    await p.evaluate(() => __yk.act({ a: "borrow" }));
+    await p.evaluate(() => __yk.act(__yk.G.phase === "bid" ? { a: "bid", v: 0 } : { a: "pass" }));
     const pn = await p.evaluate(() => __yk.RUN.moves.length), msg = await p.textContent("#live");
     check("古いタブで手を打っても二重に進めず、別のタブの進み具合に合わせる", pn === qn && /別の画面で進んでいた/.test(msg), `${pn}/${qn} ${msg}`);
     await q.close(); await p.close(); }
@@ -382,7 +375,7 @@ try {
   STEP = "実績・記録の合わせ方";
   // 実績・記録の合わせ方
   { const p = await fresh(ctx);
-    const r = await p.evaluate(() => { const A = __yk.ACH; __yk.save((s) => { s.st.wins = 3; s.st.nob = 1; }); const s = __yk.load(); return [A.length, A.filter((a) => a[3](s) >= a[4]).length]; });
+    const r = await p.evaluate(() => { const A = __yk.ACH; __yk.save((s) => { s.st.wins = 3; s.st.sweep = 1; }); const s = __yk.load(); return [A.length, A.filter((a) => a[3](s) >= a[4]).length]; });
     check("実績は10〜14個で、記録から数える", r[0] >= 10 && r[0] <= 14 && r[1] === 3, JSON.stringify(r));
     check("保存に失敗したあと別のタブが保存しても、両方の記録を合わせる", await p.evaluate((K) => { const s0 = __yk.load(); mem = JSON.stringify(Object.assign({}, s0, { t: 5, days: { "2000-01-01": { w: 1 } }, st: Object.assign({}, s0.st, { wins: 9 }) })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, days: { "2000-01-02": { w: 0 } } }))); const r2 = __yk.load(); mem = null; return !!r2.days["2000-01-01"] && !!r2.days["2000-01-02"] && r2.st.wins === 9; }, KEY));
     check("合わせるとき、新しいほうの途中経過が古い記録（朝のせりの前）なら、もう一方の当てられる途中経過を残す", await p.evaluate((K) => { const s0 = __yk.load(); const good = { mode: "p", seed: 7, moves: [{ a: "bid", v: 0 }, { a: "bid", v: 0 }], id: "good1" }, bad = { mode: "p", seed: 7, moves: [{ a: "pass" }], id: "bad1" }; mem = JSON.stringify(Object.assign({}, s0, { t: 5, runs: { p: good } })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, runs: { p: bad } }))); const r = __yk.load().runs.p; mem = null; return !!r && r.id === "good1"; }, KEY));
@@ -419,8 +412,8 @@ try {
     }
     check("上級：「増築する」から自分の店を押すと2階建てになり、盤に「2F」が出る", up);
     check("上級：おわりまで遊べる", await playOut(p));
-    const e = await p.evaluate(() => ({ h: document.querySelectorAll(".end ~ section h3, section h3").length, a: __yk.Y.score(__yk.G, "a"), m: __yk.Y.income(__yk.G.board, "a", true) + __yk.G.p.a.money - __yk.Y.LOAN_PT * __yk.G.p.a.loans + __yk.Y.goalPts(__yk.G, "a") + __yk.Y.terr(__yk.G.board, "a") + __yk.Y.komiOf(__yk.G, "a"), txt: document.body.textContent.includes("点の内わけ") && document.body.textContent.includes("秘密の目標") && document.body.textContent.includes("商店会") }));
-    check("上級：おわりに両方の目標を見せ、目標の点を足して比べる", e.h >= 2 && e.a === e.m && e.txt, JSON.stringify(e));
+    const e = await p.evaluate(() => ({ h: document.querySelectorAll(".end ~ section h3, section h3").length, a: __yk.Y.cats(__yk.G).cust.a, m: __yk.Y.income(__yk.G.board, "a", true) + __yk.Y.goalPts(__yk.G, "a"), rows: document.querySelectorAll("table.sc tbody tr").length, txt: document.body.textContent.includes("3つの勝負") && document.body.textContent.includes("秘密の目標") && document.body.textContent.includes("商店会") }));
+    check("上級：おわりに両方の目標を見せ、目標の数を「客」の勝負に足し、3つの勝負の表を出す", e.h >= 2 && e.a === e.m && e.rows === 3 && e.txt, JSON.stringify(e));
     await p.close(); }
   { const p = await fresh(ctx); await p.click("#rl-a"); await p.click("#go-v");
     const hid = !(await p.$(".goals")); await p.click("#peek"); const shown = await p.$$eval(".goals li", (a) => a.length); const who = await p.evaluate(() => __yk.G.turn);
@@ -434,6 +427,8 @@ try {
     await p.click("#go-tut");
     const t1 = await p.textContent("#h-tut"); await p.click("#tut-next");
     const lock1 = await p.$eval("#tut-next", (b) => b.disabled);
+    const tbids = await p.$$eval("[data-tbid]", (bs) => bs.map((b) => Number(b.dataset.tbid)));
+    check("チュートリアルのせりは、払っても次の☕喫茶が買える額だけ選べる（2026-11-12 CodeRabbit が 2💰で買えなくなるのを見つけた）", tbids.length >= 2 && (await p.evaluate((vs) => vs.every((v) => __yk.Y.START - (v > 1 ? v : 0) >= __yk.Y.SHOPS.cafe.c), tbids)));
     await p.click('[data-tbid="1"]'); const bidTxt = await p.textContent(".tut");
     const ok1 = !(await p.$eval("#tut-next", (b) => b.disabled)); await p.click("#tut-next");
     await p.click('[data-tm="0"]'); const lock2 = await p.$eval("#tut-next", (b) => b.disabled); const msg2 = await p.textContent(".live");
@@ -452,7 +447,7 @@ try {
     check("チュートリアル：日のおわりは「はじめ − 喫茶 ＋ 決まった額」の💰（客の数は関係なし）", day.includes(`💰${exp.start - exp.cost} ＋ ${Y.ALLOW} ＝ 💰${exp.start - exp.cost + Y.ALLOW}`) && /客の数は関係ありません/.test(day), day.slice(0, 160));
     await p.click("#tut-next"); await p.click("#tut-next"); const ter = await p.textContent(".tut");
     const te = await p.evaluate(() => { const Y = __yk.Y, b = Array(Y.N * Y.N).fill(null); const A = [0, 1, 2, 5, 7, 12, 13, 17], B = [3, 4, 8, 9, 14, 18, 19, 22]; const k = ["pan", "cafe", "ie", "hon", "yasai"]; A.forEach((i, n) => (b[i] = { t: k[n % 5], o: "a" })); B.forEach((i, n) => (b[i] = { t: k[(n + 2) % 5], o: "b" })); return [Y.groupOf(b, "a"), Y.groupOf(b, "b"), Y.linesOf(b, "a"), Y.linesOf(b, "b"), Y.income(b, "a"), Y.income(b, "b")]; });
-    check("チュートリアル：おわりの数（客・商店会・通り）は rules.js と同じ", ter.includes(`●${te[4]}点・◆${te[5]}点`) && ter.includes(`●${te[0]}点・◆${te[1]}点`) && ter.includes(`●${te[2]}列・◆${te[3]}列`) && /1回だけ/.test(ter), JSON.stringify(te));
+    check("チュートリアル：おわりの数（客・商店会・通り）は rules.js と同じ", ter.includes(`●${te[4]}・◆${te[5]}`) && ter.includes(`●${te[0]}軒・◆${te[1]}軒`) && ter.includes(`●${te[2]}列・◆${te[3]}列`) && /1回だけ/.test(ter), JSON.stringify(te));
     check("チュートリアル：幅320pxではみ出さず、押せる所は44px以上", w <= 320 && small.length === 0, `${w} ${small.join(",")}`);
     await p.click("#tut-next"); await p.click("#tut-play"); const mode = await p.evaluate(() => __yk.MODE);
     await p.click("#back"); await p.click("#go-tut"); await p.click("#tut-skip"); const back = !!(await p.$("#go-tut")) && (await p.evaluate(() => __yk.MODE)) === null;
@@ -481,9 +476,9 @@ try {
     const pages = await p.$$eval(".page", (a) => a.map((e) => [e.scrollHeight <= e.clientHeight + 1, e.getAttribute("aria-label")]));
     const tiles = await p.$$eval(".tile", (a) => a.length), cells = await p.$$eval(".board > div", (a) => a.length);
     const sz = await p.evaluate(() => { const mm = (px) => (px * 25.4) / 96; const t = document.querySelector(".tile").getBoundingClientRect(), c = document.querySelector(".board > div").getBoundingClientRect(); return [mm(t.width), mm(c.width)]; });
-    check("印刷：説明書・盤・店札・お金・印と点数表・上級ルール・行事と目標の札の7枚で、どの紙からもはみ出さない", pages.length === 7 && pages.every((x) => x[0]), JSON.stringify(pages));
+    check("印刷：説明書・盤・店札・お金・印と勝負表・上級ルール・行事と目標の札の7枚で、どの紙からもはみ出さない", pages.length === 7 && pages.every((x) => x[0]), JSON.stringify(pages));
     { const mm = await slackMm(p); check("印刷：説明書の下に5mm以上の空きがある（字の形がちがう端末でもはみ出さない）", mm >= 5, `${mm.toFixed(1)}mm`); }
-    check("印刷：行事の札12枚・目標の札8枚・2Fの札12枚・盤の大通り5マスで、文は rules.js と同じ", await p.evaluate(() => { const t = document.body.textContent; return document.querySelectorAll(".card:not(.goal)").length === 12 && document.querySelectorAll(".card.goal").length === 8 && document.querySelectorAll(".mark.up").length === 12 && document.querySelectorAll(".board .ave").length === 5 && YRK.EV_KEYS.every((k) => t.includes(YRK.EVENTS[k].txt)) && YRK.GOAL_KEYS.every((k) => t.includes(YRK.GOALS[k].txt) && t.includes(`${YRK.GOALS[k].pt}点`)) && [...document.querySelectorAll(".foot span:last-child")].every((e, i) => e.textContent === `${i + 1} / 7`); }));
+    check("印刷：行事の札12枚・目標の札8枚・2Fの札12枚・盤の大通り5マスで、文は rules.js と同じ", await p.evaluate(() => { const t = document.body.textContent; return document.querySelectorAll(".card:not(.goal)").length === 12 && document.querySelectorAll(".card.goal").length === 8 && document.querySelectorAll(".mark.up").length === 12 && document.querySelectorAll(".board .ave").length === 5 && YRK.EV_KEYS.every((k) => t.includes(YRK.EVENTS[k].txt)) && YRK.GOAL_KEYS.every((k) => t.includes(YRK.GOALS[k].txt) && t.includes(`客+${YRK.GOALS[k].pt}`)) && [...document.querySelectorAll(".foot span:last-child")].every((e, i) => e.textContent === `${i + 1} / 7`); }));
     check("印刷：店札は30枚・盤は25マスで、店札（34mm）が盤のマス（36mm）に乗る", tiles === 30 && cells === 25 && Math.abs(sz[0] - 34) < 0.5 && Math.abs(sz[1] - 36) < 0.5, sz.map((v) => v.toFixed(1)).join("/"));
     check("印刷：説明書の店の値段・客は rules.js と同じ", Y.KINDS.every((k) => print.includes("rules.js")) && await p.evaluate(() => YRK.KINDS.every((k) => document.body.textContent.includes(`${YRK.SHOPS[k].nm} ${YRK.SHOPS[k].c}💰・客${YRK.SHOPS[k].base}`))));
     check("印刷：説明書に奥付（対象年齢・小さな部品の注意・作り手と連絡先・絵の出どころ）がある", await p.evaluate(() => { const c = document.querySelector('.page[aria-label="説明書"] .colophon'); const t = c ? c.textContent : ""; return /対象年齢 \d+歳以上/.test(t) && t.includes("3歳未満") && t.includes("小さな部品") && t.includes("連絡先：https://") && t.includes("Noto Color Emoji"); }));
