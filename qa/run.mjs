@@ -427,6 +427,8 @@ try {
     await p.click("#go-tut");
     const t1 = await p.textContent("#h-tut"); await p.click("#tut-next");
     const lock1 = await p.$eval("#tut-next", (b) => b.disabled);
+    const tbids = await p.$$eval("[data-tbid]", (bs) => bs.map((b) => Number(b.dataset.tbid)));
+    check("チュートリアルのせりは、払っても次の☕喫茶が買える額だけ選べる（2026-11-12 CodeRabbit が 2💰で買えなくなるのを見つけた）", tbids.length >= 2 && (await p.evaluate((vs) => vs.every((v) => __yk.Y.START - (v > 1 ? v : 0) >= __yk.Y.SHOPS.cafe.c), tbids)));
     await p.click('[data-tbid="1"]'); const bidTxt = await p.textContent(".tut");
     const ok1 = !(await p.$eval("#tut-next", (b) => b.disabled)); await p.click("#tut-next");
     await p.click('[data-tm="0"]'); const lock2 = await p.$eval("#tut-next", (b) => b.disabled); const msg2 = await p.textContent(".live");
