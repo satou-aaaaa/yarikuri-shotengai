@@ -79,11 +79,11 @@ th{font-weight:700}
 .loans{grid-template-columns:repeat(3,58mm);grid-auto-rows:26mm}
 .loan .nm{font-size:11pt}
 .loan.tok{border-width:0.8mm;border-color:var(--ink)}
-.loan.pawn.a .nm{color:var(--a)}
-.loan.pawn.b .nm{color:var(--b)}
-.meter{display:grid;grid-template-columns:repeat(10,1fr);border:0.4mm solid var(--ink)}
-.meter div{height:11mm;border:0.2mm solid var(--line);display:flex;align-items:flex-start;justify-content:flex-start;padding:0.6mm 1mm;font-size:8pt;font-weight:700}
-.meter div:nth-child(10n+1){background:#eef1ea}
+.score{font-size:11pt;margin-top:2mm}
+.score th,.score td{border:0.3mm solid var(--ink);height:7.5mm;padding:0 2mm}
+.score td{width:30mm}
+.score th[scope=row]{text-align:left;font-weight:700}
+.score tr:last-child{border-top:0.8mm solid var(--ink)}
 @page{size:A4;margin:0}
 @media print{
   body{background:#fff;padding:0}
@@ -118,39 +118,38 @@ const pages = [];
 // 1. 説明書
 pages.push(`<section class="page" aria-label="説明書">
   <h2>やりくり商店街　説明書</h2>
-  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼び、お金と陣取りの点が多いほうの勝ち。毎日の計算は「客メーターの数だけお金をもらう」だけです。</p>
+  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼びます。毎日の計算はありません。点は、囲碁のように<b>おわりに1回だけ</b>数えます。</p>
   <div class="two flow"><div>
   <h3>じゅんび</h3>
   <ol>
     <li>盤をまん中に置きます。</li>
     <li>店札${Y.KINDS.length * Y.PER_KIND}枚を裏にしてよく混ぜ、山にします。</li>
-    <li>2人はそれぞれ、印（● か ◆）12枚・${Y.START}💰・客メーターのコマ（0のマス）を持ちます。のこりのお金と借り札は「銀行」。</li>
-    <li>じゃんけんで勝った人が<b>優先札</b>を持ちます（この人はおわりに${Y.KOMI}点もらえます。囲碁のコミと同じ考え方）。</li>
+    <li>2人はそれぞれ、印（● か ◆）12枚と${Y.START}💰を持ちます。のこりのお金と借り札は「銀行」。</li>
+    <li>じゃんけんで勝った人が<b>優先札</b>を持ちます（この人はおわりに${Y.KOMI}点もらえます。囲碁のコミと同じ考え方。上級ではなし）。</li>
   </ol>
   <h3>1日のながれ</h3>
   <ol>
     <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
     <li><b>朝のせり</b>：2人はこっそりお金をにぎって同時に開きます。多いほうが先に取り、にぎった分を銀行に払います。同じなら、どちらも払わず優先札の人が先。そのあと優先札を相手にわたします。</li>
     <li><b>取る</b>：先の人から1人1枚ずつ、お金を払って店札を取り、空き地に置いて自分の印をのせます。取らずに「店番」で1💰もらってもかまいません。だれも取らなかった店札は箱へ。</li>
-    <li><b>メーターを動かす</b>：置いた店の客の分だけ、自分のコマを進めます。となりの店の客が増えた・減ったら、その持ち主のコマも動かします（相手のコマもふくむ）。</li>
-    <li><b>お金をもらう</b>：自分の客メーターの数だけ、銀行から💰をもらいます（数え直しはいりません）。</li>
-    <li><b>利息</b>：借り札1枚につき1💰を銀行に払います。</li>
+    <li><b>お金をもらう</b>：2人とも銀行から <b>${Y.ALLOW}💰</b> もらいます（客の数は関係ありません）。</li>
   </ol></div><div>
   <h3>借りる・返す</h3>
   <ul>
-    <li>自分の番に、借り札1枚と5💰をもらえます（1人3枚まで）。5💰を払えば1枚返せます。</li>
-    <li>返すまで毎日 利息がかかります。早めに返すほど得です。</li>
+    <li>自分の番に、借り札1枚と${Y.LOAN}💰をもらえます（1人${Y.MAX_LOANS}枚まで）。${Y.LOAN}💰を払えば1枚返せます。利息はありません。</li>
+    <li>返していない借り札は、おわりに1枚 <b>${Y.LOAN_PT}点</b>引かれます。</li>
   </ul>
   <h3>おわり</h3>
   <ul>
-    <li>10日目の「利息」までやったらおしまい。最後に1回だけ<b>陣取り</b>を数えます。</li>
+    <li>${Y.DAYS}日目の「お金をもらう」までやったらおしまい。ここで1回だけ、5枚目の点数表に書いて数えます。</li>
+    <li><b>お店の客</b>：自分の店の客1人につき1点（🏠住宅は0）。</li>
     <li><b>商店会</b>：上下左右でつながった自分の店（🏠住宅もふくむ）の、いちばん大きいかたまり1軒につき1点。</li>
     <li><b>通り</b>：横5列・たて5列のそれぞれで、自分の店が相手より多ければ${Y.LINE_PT}点（同じならどちらも0）。</li>
-    <li>お金 − 返していない借り札×5 ＋ 陣取り ＋ コミ が多いほうの勝ち。同じなら、客メーターが多いほう。</li>
+    <li>客 ＋ 陣取り ＋ 残ったお金 − 借り札×${Y.LOAN_PT} ＋ コミ が多いほうの勝ち。同じ点なら、客の多いほう。</li>
   </ul>
   <h3>例</h3>
   <p>☕喫茶のとなりに📚本屋と🍞パン屋があれば、喫茶の客は 1＋1＋1＝3。🏠住宅のとなりの🥕八百屋は 1＋2＝3。</p>
-  <p>メーター：自分の🍞パン屋のとなりに☕喫茶を置いたら、喫茶が2、パン屋も +1 で、コマを3進めます。</p>
+  <p>客を数えるときは、自分の店を1軒ずつ指でさし、店札の「客」の数に、となりの分を足します。</p>
   </div></div>
   ${ref()}
   <p style="font-size:8.5pt;color:var(--sub)">スマホやパソコンでも遊べます（2人で1台・1人でAIと）。</p>
@@ -178,13 +177,14 @@ pages.push(`<section class="page" aria-label="お金">
   <p style="font-size:8.5pt;color:var(--sub)">足りなくなったら、メモや別の小物で代わりにしてかまいません。</p>
   ${foot(4)}
 </section>`);
-// 5. 印・借り札・優先札・客メーター
-pages.push(`<section class="page" aria-label="印・借り札・客メーター">
-  <h2>印・借り札・優先札・客メーター</h2>
+// 5. 印・借り札・優先札・点数表
+const scoreRows = [["お店の客（1人1点）", ""], ["商店会（いちばん大きいかたまり）", ""], [`通り（多い列 × ${Y.LINE_PT}）`, ""], ["残ったお金（1💰1点）", ""], [`返していない借り札（1枚 −${Y.LOAN_PT}）`, "−"], ["秘密の目標（上級）", ""], [`コミ（はじめの優先札に${Y.KOMI}・上級は0）`, ""], ["合計", ""]];
+pages.push(`<section class="page" aria-label="印・借り札・点数表">
+  <h2>印・借り札・優先札・点数表</h2>
   <div class="grid marks">${["a", "b"].flatMap((o) => Array.from({ length: 12 }, () => `<div class="t mark ${o}">${o === "a" ? "●" : "◆"}</div>`)).join("")}</div>
-  <div class="grid loans">${Array.from({ length: 6 }, () => `<div class="t loan"><span class="nm">借り札</span><span class="x">返すまで毎日 利息1💰。返すときは5💰</span></div>`).join("")}<div class="t loan tok"><span class="nm">優先札</span><span class="x">せりが同じ額なら、この札の人が先。せりのあと相手にわたす</span></div><div class="t loan pawn a"><span class="nm">● のコマ</span><span class="x">客メーターに置く</span></div><div class="t loan pawn b"><span class="nm">◆ のコマ</span><span class="x">客メーターに置く</span></div></div>
-  <h3>客メーター（自分の店の客の合計。日のおわりにこの数だけ💰をもらう）</h3>
-  <div class="meter">${Array.from({ length: 60 }, (_, i) => `<div>${i}</div>`).join("")}</div>
+  <div class="grid loans">${Array.from({ length: 6 }, () => `<div class="t loan"><span class="nm">借り札</span><span class="x">返すときは${Y.LOAN}💰。返さないとおわりに −${Y.LOAN_PT}点</span></div>`).join("")}<div class="t loan tok"><span class="nm">優先札</span><span class="x">せりが同じ額なら、この札の人が先。せりのあと相手にわたす</span></div></div>
+  <h3>点数表（${Y.DAYS}日目のおわりに1回だけ書く）</h3>
+  <table class="score"><thead><tr><th></th><th>●</th><th>◆</th></tr></thead><tbody>${scoreRows.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td><td>${v}</td></tr>`).join("")}</tbody></table>
   ${foot(5)}
 </section>`);
 // 6. 上級ルール・2階の札
@@ -197,21 +197,20 @@ pages.push(`<section class="page" aria-label="上級ルール">
   <h3>行事の札（12枚）</h3>
   <ul>
     <li>じゅんび：よく混ぜて${Y.DAYS}枚を裏のまま横に並べ（のこりは箱へ）、1〜${Y.EV_SEE}枚目を表にします。左から1日目・2日目…の札です。</li>
-    <li>その日の札は、その日の「お金をもらう」「利息」で使います。どれも「〇〇の店1軒につき ±いくつ」なので、その日だけメーターの数に足し引きします（コマは動かしません）。</li>
+    <li>その日の札は、その日の店札の値段か、その日の「お金をもらう」だけを変えます（客の数は変えません）。2人とも同じです。</li>
     <li>日がおわるたびに、次の1枚を表にします（いつも今日とその先2日分が見えます）。</li>
-    <li>税・利息でお金が足りないときは、マイナスのまま続けます（メモしておき、次からの入るお金で埋めます）。</li>
   </ul>
   </div><div>
   <h3>増築（2階建て）</h3>
   <ul>
     <li>自分の番に、店札を取るかわりに、自分の店（🏠住宅のぞく）1軒に「2F」の札をのせられます。</li>
-    <li>払うのはその店の値段（大通りでも +1 なし）。その店の客は +${Y.UP_ADD}（メーターを${Y.UP_ADD}進める）。1軒に1回まで。</li>
+    <li>払うのはその店の値段（大通りでも +1 なし）。その店の客は +${Y.UP_ADD}。1軒に1回まで。</li>
     <li>陣取りでは、2階建ての店は2軒と数えます（商店会も通りも）。</li>
   </ul>
   <h3>秘密の目標（8枚）</h3>
   <ul>
     <li>じゅんび：よく混ぜて、1人2枚ずつ裏のまま取ります。相手に見せません。のこりは箱へ。</li>
-    <li>おわりに、満たしている目標の点も足して比べます。同じなら、客メーター（行事の札は入れない）が多いほう。</li>
+    <li>おわりに、満たしている目標の点も足して比べます。上級ではコミはありません。同じ点なら、客の多いほう。</li>
   </ul>
   </div></div>
   <h3>2Fの札（12枚）</h3>

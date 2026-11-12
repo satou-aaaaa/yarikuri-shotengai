@@ -9,7 +9,7 @@
 //      保存したものは自分の版（cacheName）からだけ探す・入れるときは HTTP の保存を通さない（cache: "reload"）・
 //      長い受信でも保存し直しが終わるまで waitUntil で待つ
 // game:begin
-const CACHE = "yrk-v4"; // 中身を大きく変えたら版を上げる
+const CACHE = "yrk-v5"; // 中身を大きく変えたら版を上げる
 const SHELL = ["./", "./index.html", "./rules.js", "./print.html", "./print-lite.html", "./transfer.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 // game:end
 
