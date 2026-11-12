@@ -42,13 +42,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1
 table{border-collapse:collapse;width:100%;font-size:9pt}
 th,td{border:0.3mm solid var(--line);padding:1mm 1.5mm;text-align:center;height:7mm}
 th{font-weight:700}
-/* 盤：36mm × 5 */
-.board{display:grid;grid-template-columns:repeat(5,36mm);grid-template-rows:repeat(5,36mm);border:0.8mm solid var(--ink);width:max-content;margin:0 auto}
+/* 盤：30mm × 6（6×6 にして 36mm から小さくした。2026-11-12） */
+.board{display:grid;grid-template-columns:repeat(6,30mm);grid-template-rows:repeat(6,30mm);border:0.8mm solid var(--ink);width:max-content;margin:0 auto}
 .board div{border:0.3mm solid var(--line);display:flex;align-items:flex-end;justify-content:flex-start;padding:1mm;font-size:7pt;color:var(--sub)}
 .street{text-align:center;font-family:var(--display);font-size:11pt;letter-spacing:.3em}
-/* 札：切って使う。店札 34mm 角（盤のマスに乗る）・お金 30mm 角・印 20mm 丸 */
+/* 札：切って使う。店札 28mm 角（盤のマスに乗る）・お金 24mm 角・印 18mm 丸 */
 .grid{display:grid;justify-content:center}
-.tiles{grid-template-columns:repeat(5,34mm);grid-auto-rows:34mm}
+.tiles{grid-template-columns:repeat(6,28mm);grid-auto-rows:28mm}
+.tile .e{font-size:16pt}.tile .nm{font-size:9pt}.tile .x{font-size:5.8pt;line-height:1.25}
 .coins{grid-template-columns:repeat(7,24mm);grid-auto-rows:24mm}
 .t{border:0.3mm dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.5mm;padding:1.5mm;overflow:hidden}
 .t .e{font-size:20pt;line-height:1.1}
@@ -63,8 +64,8 @@ th{font-weight:700}
 .coin.five{border-style:solid;border-width:0.6mm;border-color:var(--ink)}
 .coin.ten .v{font-size:20pt}
 .coin.ten{border-style:double;border-width:1.6mm;border-color:var(--ink)}
-.marks{grid-template-columns:repeat(8,22mm);grid-auto-rows:22mm}
-.mark{border-radius:50%;font-size:16pt;font-weight:900}
+.marks{grid-template-columns:repeat(10,18mm);grid-auto-rows:18mm}
+.mark{border-radius:50%;font-size:14pt;font-weight:900}
 .mark.a{color:var(--a);border:0.8mm solid var(--a)}
 .mark.b{color:var(--b);border:0.8mm dashed var(--b)}
 .board .ave{background:repeating-linear-gradient(135deg,#fff 0 3mm,#e4e8e2 3mm 3.6mm)}
@@ -80,10 +81,10 @@ th{font-weight:700}
 .loan .nm{font-size:11pt}
 .loan.tok{border-width:0.8mm;border-color:var(--ink)}
 .score{font-size:11pt;margin-top:2mm}
-.ex{display:grid;grid-template-columns:52mm 1fr;gap:5mm;margin-top:4mm;font-size:9pt;align-items:start}
+.ex{display:grid;grid-template-columns:56mm 1fr;gap:5mm;margin-top:4mm;font-size:9pt;align-items:start}
 .ex h3{margin:0 0 1mm}.ex p,.ex ul{margin:0 0 1mm}
-.mini{display:grid;grid-template-columns:repeat(5,10mm);grid-auto-rows:10mm;border:0.4mm solid var(--ink)}
-.mini div{border:0.2mm solid var(--line);font-size:8pt;display:flex;align-items:center;justify-content:center;gap:0.3mm;line-height:1}
+.mini{display:grid;grid-template-columns:repeat(6,9mm);grid-auto-rows:9mm;border:0.4mm solid var(--ink)}
+.mini div{border:0.2mm solid var(--line);font-size:7pt;display:flex;align-items:center;justify-content:center;gap:0.3mm;line-height:1}
 .mini div.a{color:var(--a)}.mini div.b{color:var(--b);border-style:dashed}
 .mini small{font-size:7pt;font-weight:900;color:var(--ink)}
 .score th,.score td{border:0.3mm solid var(--ink);height:7.5mm;padding:0 2mm}
@@ -124,20 +125,20 @@ const pages = [];
 // 1. 説明書
 pages.push(`<section class="page" aria-label="説明書">
   <h2>やりくり商店街　説明書</h2>
-  <p>2人用・20〜30分。5×5の通りにお店を並べて客を呼びます。毎日の計算はありません。勝ち負けは<b>おわりに1回だけ、3つの勝負</b>で決めます。</p>
+  <p>2人用・30〜40分。6×6の通りにお店を並べて客を呼びます。毎日の計算はありません。勝ち負けは<b>おわりに1回だけ、3つの勝負</b>で決めます。</p>
   <div class="two flow"><div>
   <h3>じゅんび</h3>
   <ol>
     <li>盤をまん中に置きます。</li>
     <li>店札${Y.KINDS.length * Y.PER_KIND}枚を裏にしてよく混ぜ、山にします。</li>
-    <li>2人はそれぞれ、印（● か ◆）12枚と${Y.START}💰を持ちます。のこりのお金は「銀行」。</li>
+    <li>2人はそれぞれ、印（● か ◆）18枚と${Y.START}💰を持ちます。のこりのお金は「銀行」。</li>
     <li>じゃんけんで勝った人が<b>優先札</b>を持ちます（おわりの勝負が引き分けたとき、最後にこの人の勝ちになります）。</li>
   </ol>
   <h3>1日のながれ</h3>
   <ol>
     <li><b>市場</b>：山から${Y.MARKET}枚めくって並べます。</li>
     <li><b>朝のせり</b>：2人はこっそりお金をにぎって同時に開きます。多いほうが先に取り、にぎった分を銀行に払います。同じなら、どちらも払わず優先札の人が先。そのあと優先札を相手にわたします。</li>
-    <li><b>取る</b>：先の人から1人1枚ずつ、お金を払って店札を取り、空き地に置いて自分の印をのせます。取らずに「店番」で1💰もらってもかまいません。だれも取らなかった店札は箱へ。</li>
+    <li><b>取る</b>：1人2回ずつ、<b>先の人 → あとの人 → あとの人 → 先の人</b>の順に番が来ます。番ごとに、お金を払って店札を1枚取り、空き地に置いて自分の印をのせます。取らずに「店番」で1💰もらってもかまいません。だれも取らなかった店札は箱へ。</li>
     <li><b>お金をもらう</b>：2人とも銀行から <b>${Y.ALLOW}💰</b> もらいます（客の数は関係ありません）。</li>
   </ol></div><div>
   <h3>お金</h3>
@@ -146,7 +147,7 @@ pages.push(`<section class="page" aria-label="説明書">
   <ul>
     <li>${Y.DAYS}日目の「お金をもらう」までやったらおしまい。ここで1回だけ、次の3つを比べます。<b>2つ勝ったほうの勝ち</b>。</li>
     <li><b>客</b>：自分の店の客の合計（🏠住宅は0）。</li>
-    <li><b>通り</b>：横5列・たて5列のうち、自分の店が相手より多い列の数。</li>
+    <li><b>通り</b>：横6列・たて6列のうち、自分の店が相手より多い列の数。</li>
     <li><b>商店会</b>：上下左右でつながった自分の店（🏠住宅もふくむ）の、いちばん大きいかたまりの軒数。</li>
     <li>引き分けた勝負は、残ったお金が多いほうの勝ち。それも同じなら、はじめに優先札を持った人の勝ち。</li>
   </ul>
@@ -163,7 +164,7 @@ pages.push(`<section class="page" aria-label="説明書">
 pages.push(`<section class="page" aria-label="盤">
   <h2>盤（通り）</h2>
   <p class="street">― 商 店 街 ―</p>
-  <div class="board">${Array.from({ length: 25 }, (_, i) => `<div${Y.MAIN.includes(i) ? ' class="ave"' : ""}>${String.fromCharCode(65 + (i % 5))}${1 + Math.floor(i / 5)}${Y.MAIN.includes(i) && i % 5 === 0 ? "　大通り（上級）" : ""}</div>`).join("")}</div>
+  <div class="board">${Array.from({ length: Y.N * Y.N }, (_, i) => `<div${Y.MAIN.includes(i) ? ' class="ave"' : ""}>${String.fromCharCode(65 + (i % Y.N))}${1 + Math.floor(i / Y.N)}${Y.MAIN.includes(i) && i % Y.N === 0 ? "　大通り" : ""}</div>`).join("")}</div>
   <p style="text-align:center;font-size:9pt;color:var(--sub)">店札はマスに1枚。となりは上下左右（ななめは数えません）。斜線の列は上級ルールの大通り（基本ルールではふつうのマス）。</p>
   ${foot(2)}
 </section>`);
@@ -182,7 +183,8 @@ pages.push(`<section class="page" aria-label="お金">
 </section>`);
 // おわりの3つの勝負の例（画面の遊び方・チュートリアルと同じ盤。数は rules.js で数える）
 const example = () => {
-  const b = Array(25).fill(null), A = [0, 1, 2, 5, 7, 12, 13, 17], B = [3, 4, 8, 9, 14, 18, 19, 22], k = ["pan", "cafe", "ie", "hon", "yasai"];
+  const pos = ([x, y]) => y * Y.N + x, k = ["pan", "cafe", "ie", "hon", "yasai"], b = Array(Y.N * Y.N).fill(null);
+  const A = [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [2, 2], [3, 2], [2, 3], [0, 4], [1, 4], [0, 5], [5, 5]].map(pos), B = [[3, 0], [4, 0], [5, 0], [3, 1], [4, 1], [4, 2], [5, 2], [3, 3], [4, 3], [5, 4], [2, 5], [3, 5]].map(pos);
   A.forEach((i, n) => (b[i] = { t: k[n % 5], o: "a" })); B.forEach((i, n) => (b[i] = { t: k[(n + 2) % 5], o: "b" }));
   const v = (o) => ({ c: Y.income(b, o), l: Y.linesOf(b, o), g: Y.groupOf(b, o) }), P = v("a"), Q = v("b"), w = (x, y) => (x > y ? "● の勝ち" : x < y ? "◆ の勝ち" : "引き分け → 残ったお金で");
   const n = (o) => ["c", "l", "g"].filter((x) => (o === "a" ? P[x] > Q[x] : Q[x] > P[x])).length;
@@ -197,7 +199,7 @@ const example = () => {
 const scoreRows = [["客（自分の店の客の合計）"], ["通り（多く取った列の数）"], ["商店会（いちばん大きいかたまり）"], ["勝った数（2つで勝ち）"]];
 pages.push(`<section class="page" aria-label="印・優先札・勝負表">
   <h2>印・優先札・勝負表</h2>
-  <div class="grid marks">${["a", "b"].flatMap((o) => Array.from({ length: 12 }, () => `<div class="t mark ${o}">${o === "a" ? "●" : "◆"}</div>`)).join("")}</div>
+  <div class="grid marks">${["a", "b"].flatMap((o) => Array.from({ length: 18 }, () => `<div class="t mark ${o}">${o === "a" ? "●" : "◆"}</div>`)).join("")}</div>
   <div class="grid loans"><div class="t loan tok"><span class="nm">優先札</span><span class="x">せりが同じ額なら、この札の人が先。せりのあと相手にわたす</span></div></div>
   <h3>勝負表（${Y.DAYS}日目のおわりに1回だけ書く。勝った方に◯）</h3>
   <table class="score"><thead><tr><th></th><th>●</th><th>◆</th></tr></thead><tbody>${scoreRows.map(([k]) => `<tr><th scope="row">${k}</th><td></td><td></td></tr>`).join("")}</tbody></table>
@@ -210,7 +212,7 @@ pages.push(`<section class="page" aria-label="上級ルール">
   <p>基本のきまりに、次の4つを足します。7枚目の札と、下の「2F」の札を切って使います。</p>
   <div class="two"><div>
   <h3>大通り</h3>
-  <ul><li>盤のまん中の横の列（斜線のマス）は大通り。ここの店は客 +1、置くときの値段も +1💰（🏠住宅は値段だけ +1。客は0のまま）。</li></ul>
+  <ul><li>盤の3の横の列（A3〜F3、斜線のマス）は大通り。ここの店は客 +1、置くときの値段も +1💰（🏠住宅は値段だけ +1。客は0のまま）。</li></ul>
   <h3>行事の札（12枚）</h3>
   <ul>
     <li>じゅんび：よく混ぜて${Y.DAYS}枚を裏のまま横に並べ（のこりは箱へ）、1〜${Y.EV_SEE}枚目を表にします。左から1日目・2日目…の札です。</li>
@@ -242,7 +244,7 @@ pages.push(`<section class="page" aria-label="行事の札・目標の札">
   <div class="grid cards">${Y.EV_KEYS.map(evCard).join("")}</div>
   <h2>秘密の目標（${Y.GOAL_KEYS.length}枚）</h2>
   <div class="grid cards">${Y.GOAL_KEYS.map(goalCard).join("")}</div>
-  <p style="font-size:8.5pt;color:var(--sub)">「となり合う組」は上下左右。四すみは A1・E1・A5・E5。大通りは A3〜E3。</p>
+  <p style="font-size:8.5pt;color:var(--sub)">「となり合う組」は上下左右。四すみは A1・F1・A6・F6。大通りは A3〜F3。</p>
   ${foot(7)}
 </section>`);
 document.getElementById("sheets").innerHTML = pages.join("").split("@@ALL@@").join(String(pages.length));
