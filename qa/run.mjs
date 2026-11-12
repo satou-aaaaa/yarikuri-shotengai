@@ -191,6 +191,8 @@ const print = readFileSync(path.join(root, "print.html"), "utf8"), lite = readFi
     check("当てられない手（朝のせりの前の古い記録）で止まると bad にその番号が残る", ok.bad === undefined && old.bad === 0); }
     check("3つの勝負で2つ勝ったほうの勝ち・引き分けはお金→優先札（説明書・少ない版・画面に書く）", [print, lite, html].every((h) => h.includes("2つ勝ったほうの勝ち") && /引き分けた勝負は、(残ったお金|のこり)が多いほう/.test(h)));
     check("説明書と画面に、利息・客メーター・借り札・コミの言葉が残っていない（2026-11-12 3つの勝負の形）", ![html, print, lite].some((h) => /利息|客メーター|借り札|返していない借り|コミ/.test(h)));
+    check("説明書と画面に、点の多さで勝つという古い勝ち方が残っていない（2026-11-12 CodeRabbit がホームと簡易版の冒頭で見つけた）", ![html, print, lite].some((h) => /陣取りの点|点が多いほう/.test(h)));
+    check("きまりが変わった実績は、古い記録の数を流用しない（nob・lwin・rich は使わない。2026-11-12）", !/st\.(nob|lwin|rich)\b|\["(nob|lwin|rich)"/.test(html));
   }
   check("チケット・回数制限・🔒で開くモードを入れない", !/🎫|チケット|ライフ|スタミナ|で開く|解放/.test(html));
   check("画面にお笑いの言葉を入れない", !/お笑い|ギャグ|ボケ|ツッコミ|なんでやねん/.test(html + print + lite));
@@ -373,7 +375,7 @@ try {
   STEP = "実績・記録の合わせ方";
   // 実績・記録の合わせ方
   { const p = await fresh(ctx);
-    const r = await p.evaluate(() => { const A = __yk.ACH; __yk.save((s) => { s.st.wins = 3; s.st.nob = 1; }); const s = __yk.load(); return [A.length, A.filter((a) => a[3](s) >= a[4]).length]; });
+    const r = await p.evaluate(() => { const A = __yk.ACH; __yk.save((s) => { s.st.wins = 3; s.st.sweep = 1; }); const s = __yk.load(); return [A.length, A.filter((a) => a[3](s) >= a[4]).length]; });
     check("実績は10〜14個で、記録から数える", r[0] >= 10 && r[0] <= 14 && r[1] === 3, JSON.stringify(r));
     check("保存に失敗したあと別のタブが保存しても、両方の記録を合わせる", await p.evaluate((K) => { const s0 = __yk.load(); mem = JSON.stringify(Object.assign({}, s0, { t: 5, days: { "2000-01-01": { w: 1 } }, st: Object.assign({}, s0.st, { wins: 9 }) })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, days: { "2000-01-02": { w: 0 } } }))); const r2 = __yk.load(); mem = null; return !!r2.days["2000-01-01"] && !!r2.days["2000-01-02"] && r2.st.wins === 9; }, KEY));
     check("合わせるとき、新しいほうの途中経過が古い記録（朝のせりの前）なら、もう一方の当てられる途中経過を残す", await p.evaluate((K) => { const s0 = __yk.load(); const good = { mode: "p", seed: 7, moves: [{ a: "bid", v: 0 }, { a: "bid", v: 0 }], id: "good1" }, bad = { mode: "p", seed: 7, moves: [{ a: "pass" }], id: "bad1" }; mem = JSON.stringify(Object.assign({}, s0, { t: 5, runs: { p: good } })); localStorage.setItem(K, JSON.stringify(Object.assign({}, s0, { t: 9, runs: { p: bad } }))); const r = __yk.load().runs.p; mem = null; return !!r && r.id === "good1"; }, KEY));

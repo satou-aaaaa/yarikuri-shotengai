@@ -373,7 +373,7 @@ const prevDay = (k) => new Date(Date.parse(k) - 864e5).toISOString().slice(0, 10
 
 // ===== 記録 =====
 // runs：途中のゲーム（d＝今日の盤・a＝あとから・p＝練習・v＝2人対戦）。中身は種と手の並びだけ（盤は作り直す）
-const fresh = () => ({ v: 1, tut: false, lv: "normal", rule: "basic", runs: {}, days: {}, adays: {}, st: { games: 0, wins: 0, nwins: 0, two: 0, nob: 0, lwin: 0, maxInc: 0, all5: 0, rich: 0, awins: 0, goals: 0 }, ach: {}, kofi: {}, done: [] });
+const fresh = () => ({ v: 1, tut: false, lv: "normal", rule: "basic", runs: {}, days: {}, adays: {}, st: { games: 0, wins: 0, nwins: 0, two: 0, sweep: 0, mwin: 0, maxInc: 0, all5: 0, line6: 0, awins: 0, goals: 0 }, ach: {}, kofi: {}, done: [] });
 let mem = null; // 保存できない環境では、開いているあいだだけここに置く
 function load() {
   let a = null, b = null;
@@ -408,11 +408,11 @@ const ACH = [
   ["win3", "常連さんの店", "店主に3回勝つ", (s) => s.st.wins, 3],
   ["win10", "商店街の顔", "店主に10回勝つ", (s) => s.st.wins, 10],
   ["nwin", "手ごわい相手", "ふつうの店主に勝つ", (s) => s.st.nwins, 1],
-  ["nob", "完全勝利", "3つの勝負に全部勝つ", (s) => s.st.nob, 1],
-  ["lwin", "やりくり上手", "引き分けの勝負を残ったお金で取って勝つ", (s) => s.st.lwin, 1],
+  ["sweep", "完全勝利", "3つの勝負に全部勝つ", (s) => s.st.sweep, 1],
+  ["mwin", "やりくり上手", "引き分けの勝負を残ったお金で取って勝つ", (s) => s.st.mwin, 1],
   ["busy", "大にぎわい", "自分の店の客を30人以上にする", (s) => s.st.maxInc, 30],
   ["all5", "品ぞろえ", "5種類の店をぜんぶ持つ", (s) => s.st.all5, 1],
-  ["rich", "大通りの顔役", "通りを6列以上取る", (s) => s.st.rich, 1],
+  ["line6", "大通りの顔役", "通りを6列以上取る", (s) => s.st.line6, 1],
   ["two", "ふたりで対戦", "2人対戦を1回終える", (s) => s.st.two, 1],
   ["adv", "上級の店主", "上級ルールで店主に勝つ", (s) => s.st.awins, 1],
   ["goal", "ねらいどおり", "上級ルールで秘密の目標を2つとも満たす", (s) => s.st.goals, 1],
@@ -455,7 +455,7 @@ function home() {
   const achNow = ACH.filter((a) => a[3](s) >= a[4]).length;
   $("app").innerHTML = `
   <header class="row" style="align-items:baseline;justify-content:space-between"><h1 class="title">やりくり商店街</h1><span class="note">2人対戦のボードゲーム</span></header>
-  <p class="sub">5×5の通りにお店を並べて客を呼びます。10日目に、お金と陣取りの点が多いほうの勝ち。</p>
+  <p class="sub">5×5の通りにお店を並べて客を呼びます。10日目に、客・通り・商店会の3つの勝負で2つ勝ったほうの勝ち。</p>
   <section class="box" aria-labelledby="h-tut0"><h2 id="h-tut0">はじめての人へ</h2><p class="note">練習の盤で、せり・置き方・日のおわり・おわりの点を1歩ずつ（2分くらい）。</p><button class="${s.st.games ? "" : "main "}big" id="go-tut">チュートリアル</button></section>
   <section class="box" aria-labelledby="h-rule">
     <h2 id="h-rule">きまり</h2>
@@ -633,8 +633,8 @@ function finish() {
     if (MODE === "v") s.st.two++;
     else {
       if (G.adv && G.goals.a.every((k) => { const [h, n] = Y.goalProg(G, "a", k); return h >= n; })) s.st.goals++;
-      if (w) { s.st.wins++; if (G.adv) s.st.awins++; if (RUN.lv === "normal") s.st.nwins++; if (a === 3) s.st.nob++; if (Y.CATS.some((k) => { const c = Y.cats(G)[k]; return c.tie && c.w === "a" && G.p.a.money !== G.p.b.money; })) s.st.lwin++; }
-      s.st.maxInc = Math.max(s.st.maxInc, maxMeter(RUN, "a")); if (kinds === 5) s.st.all5++; if (Y.linesOf(G.board, "a") >= 6) s.st.rich++;
+      if (w) { s.st.wins++; if (G.adv) s.st.awins++; if (RUN.lv === "normal") s.st.nwins++; if (a === 3) s.st.sweep++; if (Y.CATS.some((k) => { const c = Y.cats(G)[k]; return c.tie && c.w === "a" && G.p.a.money !== G.p.b.money; })) s.st.mwin++; }
+      s.st.maxInc = Math.max(s.st.maxInc, maxMeter(RUN, "a")); if (kinds === 5) s.st.all5++; if (Y.linesOf(G.board, "a") >= 6) s.st.line6++;
       if (MODE === "d" && !s.days[RUN.date]) s.days[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv, adv: G.adv ? 1 : 0 };
       if (MODE === "a" && !s.adays[RUN.date] && !s.days[RUN.date]) s.adays[RUN.date] = { w: w ? 1 : 0, s: a, o: b, lv: RUN.lv, adv: G.adv ? 1 : 0 };
     }
