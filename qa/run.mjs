@@ -194,6 +194,8 @@ const print = readFileSync(path.join(root, "print.html"), "utf8"), lite = readFi
     check("当てられない手（朝のせりの前の古い記録）で止まると bad にその番号が残る", ok.bad === undefined && old.bad === 0); }
     check("1日に1人2回ずつ、先 → あと → あと → 先の順（説明書・少ない版・画面に書く）", [print, lite, html].every((h) => /先の人 → あとの人 → あとの人 → 先の人/.test(h)) && ![print, lite, html].some((h) => /5×5|1人1枚ずつ|横5列|10日/.test(h)));
     check("3つの勝負で2つ勝ったほうの勝ち・引き分けはお金→優先札（説明書・少ない版・画面に書く）", [print, lite, html].every((h) => h.includes("2つ勝ったほうの勝ち") && /引き分けた勝負は、(残ったお金|のこり)が多いほう/.test(h)));
+    { const deck = Y.KINDS.length * Y.PER_KIND, nums = [print, lite].flatMap((h) => [...h.matchAll(/店札(\d+)枚/g)].map((m) => +m[1])).filter((n) => n > Y.MARKET);
+      check(`印刷版に書いた店札の枚数は山と同じ ${deck} 枚（2026-11-12 CodeRabbit：簡易版に「30枚」が残っていた）`, nums.length > 0 && nums.every((n) => n === deck)); }
     check("説明書と画面に、利息・客メーター・借り札・コミの言葉が残っていない（2026-11-12 3つの勝負の形）", ![html, print, lite].some((h) => /利息|客メーター|借り札|返していない借り|コミ/.test(h)));
     check("説明書と画面に、点の多さで勝つという古い勝ち方が残っていない（2026-11-12 CodeRabbit がホームと簡易版の冒頭で見つけた）", ![html, print, lite].some((h) => /陣取りの点|点が多いほう/.test(h)));
     check("きまりが変わった実績は、古い記録の数を流用しない（nob・lwin・rich は使わない。2026-11-12）", !/st\.(nob|lwin|rich)\b|\["(nob|lwin|rich)"/.test(html));
