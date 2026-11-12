@@ -1,8 +1,9 @@
 // やりくり商店街のきまり（画面 index.html・印刷 print.html・検査 qa/run.mjs が同じものを使う）。
-// 盤は 5×5。毎日3枚の店札から2人が1枚ずつ取り、空き地に置く。どちらが先に取るかは、毎朝のせり（2人がこっそり決めた額を同時に開く）で決める。
-// 毎日のおわりに、2人とも決まった額（ALLOW＝5💰）をもらう。借りることはできない。
-// 勝ち負けは10日目のおわりの1回だけ、3つの勝負で決める（2026-11-12 satouさん「点数の計算方法をシンプルに」→ 案B）：
-// 客（自分の店の客の合計）・通り（横5列・たて5列で店が多い列の数）・商店会（いちばん大きいかたまりの軒数）。2つ勝ったほうの勝ち。
+// 盤は 6×6。毎日5枚の店札から2人が2枚ずつ取り、空き地に置く。順番は、せりに勝った人 → 相手 → 相手 → せりに勝った人（2026-11-12 satouさん「1日のアクションが少ない」→ 案A）。
+// どちらが先に取るかは、毎朝のせり（2人がこっそり決めた額を同時に開く）で決める。
+// 毎日のおわりに、2人とも決まった額（ALLOW＝6💰）をもらう。借りることはできない。
+// 勝ち負けは8日目のおわりの1回だけ、3つの勝負で決める（2026-11-12 satouさん「点数の計算方法をシンプルに」→ 案B）：
+// 客（自分の店の客の合計）・通り（横6列・たて6列で店が多い列の数）・商店会（いちばん大きいかたまりの軒数）。2つ勝ったほうの勝ち。
 // 引き分けた勝負は、残ったお金が多いほう、それも同じならはじめに優先札を持った人の勝ち（コミの代わり。引き分けが無くなる）。お金は店を買うためと、引き分けを決めるためだけ。
 // ゲームの進み方は「種（seed）＋手の並び（moves）」だけで決まる。となりの店主（AI）も決まった手順で選ぶので、同じ種と手なら同じ結果になる。
 (function (root) {
@@ -16,14 +17,17 @@
     ie: { e: "🏠", nm: "住宅", c: 2, base: 0, txt: "自分の客は0。となりのお店（相手の店も）が +1" },
   };
   const KINDS = ["yasai", "pan", "cafe", "hon", "ie"];
-  const N = 5, DAYS = 10, START = 4, PER_KIND = 6, MARKET = 3;
-  const ALLOW = 5; // 毎日もらうお金
+  // 2手ずつの数（3000局の試し、2026-11-12）：はじめ6💰・毎日6💰で、1人あたり店12軒・店番3回・空き地10ほど。先手後手・優先札の差は 49〜51%。
+  // 毎日5💰では店番が5回に増え、7💰では優先札の人が58%になった。順番を「勝った人→相手→勝った人→相手」にすると優先札の人が45%
+  const RV = 2; // きまりの版（盤の大きさ・手の数を変えたら上げる。index.html が版のちがう途中の回を続きから外す）
+  const N = 6, DAYS = 8, START = 6, PER_KIND = 8, MARKET = 5, PICKS = 2;
+  const ALLOW = 6; // 毎日もらうお金
   // ===== 上級ルール（opts.adv）。基本ルールの盤・店札の順は変えない =====
-  // 大通り：まん中の横の列は客 +1・値段 +1。四すみ（角）は目標「角の店」で使う
+  // 大通り：上から3番目の横の列は客 +1・値段 +1。四すみ（角）は目標「角の店」で使う
   // （角の値引き・増築の客2倍は、先手後手の差が大きくなったのでやめた。2026-11-11 の1000局の試し）
-  const MAIN = [10, 11, 12, 13, 14], CORNER = [0, 4, 20, 24];
+  const MAIN = [12, 13, 14, 15, 16, 17], CORNER = [0, 5, 30, 35];
   const UP_ADD = 2; // 増築した店の客の増え方
-  // 行事の札：毎日1枚。今日と、その先2日分まで見える。12枚から10日分を、店札とは別の乱数で並べる（足すときは最後に足す）
+  // 行事の札：毎日1枚。今日と、その先2日分まで見える。12枚から8日分を、店札とは別の乱数で並べる（足すときは最後に足す）
   // どれも「今日の値段」か「今日もらうお金」だけを変える（客の数は変えない。点はおわりに1回だけ数えるため。2026-11-12）
   const EVENTS = {
     quiet: { e: "🌤", nm: "いつもの日", txt: "なにも起きない" },
@@ -41,16 +45,16 @@
   };
   const EV_KEYS = ["quiet", "rain", "payday", "rateup", "ratedown", "sale", "bookfair", "morning", "festival", "tax", "holiday", "work"];
   const EV_SEE = 3; // 今日をふくめて見える日数
-  // 秘密の目標：はじめに2枚ずつ。相手には見せない。10日目のおわりに満たしていれば、その数だけ「客」の勝負に足す
+  // 秘密の目標（6×6・2手ずつで、本屋・住宅・八百屋は4軒、通りは5列に上げた。2026-11-12 600局で 59〜91% 満たす）：はじめに2枚ずつ。相手には見せない。8日目のおわりに満たしていれば、その数だけ「客」の勝負に足す
   const GOALS = {
     corner: { e: "📐", nm: "角の店", txt: "四すみのうち2つに自分の店", need: 2, pt: 3 },
-    books: { e: "📚", nm: "本の通り", txt: "自分の📚本屋を3軒", need: 3, pt: 4 },
+    books: { e: "📚", nm: "本の通り", txt: "自分の📚本屋を4軒", need: 4, pt: 4 },
     pair: { e: "☕", nm: "喫茶とパン", txt: "自分の☕と🍞のとなり合う組を2つ", need: 2, pt: 3 },
     main: { e: "🛣", nm: "大通りの顔", txt: "大通りに自分の店を3軒", need: 3, pt: 4 },
-    homes: { e: "🏠", nm: "住宅街", txt: "自分の🏠住宅を3軒", need: 3, pt: 5 },
+    homes: { e: "🏠", nm: "住宅街", txt: "自分の🏠住宅を4軒", need: 4, pt: 5 },
     up: { e: "🏢", nm: "2階建て", txt: "増築した店を2軒", need: 2, pt: 3 },
-    noloan: { e: "🛤", nm: "通りの主", txt: "通りを4列以上取る", need: 4, pt: 4 }, // 鍵は前の「借りずに」のまま（並びを変えないため）
-    veg: { e: "🥕", nm: "八百屋の並び", txt: "自分の🥕八百屋を3軒", need: 3, pt: 5 },
+    noloan: { e: "🛤", nm: "通りの主", txt: "通りを5列以上取る", need: 5, pt: 4 }, // 鍵は前の「借りずに」のまま（並びを変えないため）
+    veg: { e: "🥕", nm: "八百屋の並び", txt: "自分の🥕八百屋を4軒", need: 4, pt: 5 },
   };
   const GOAL_KEYS = ["corner", "books", "pair", "main", "homes", "up", "noloan", "veg"];
   const PLAYERS = ["a", "b"]; // a＝1P（1人のときは「あなた」）、b＝2P（1人のときは「となりの店主」）
@@ -93,7 +97,7 @@
   }
   const allowOf = (ev) => ALLOW + (ev === "payday" ? 2 : ev === "tax" ? -2 : 0);
   // 陣取りの点（おわりに1回だけ数える）。商店会：つながった自分の店（住宅もふくむ）のいちばん大きいかたまり1軒につき1点。
-  // 通り：横5列・たて5列のそれぞれで、自分の店が相手より多ければ LINE_PT 点（同じならどちらも0）。上級の2階建ては、どちらも2軒と数える
+  // 通り：横6列・たて6列のそれぞれで、自分の店が相手より多ければ LINE_PT 点（同じならどちらも0）。上級の2階建ては、どちらも2軒と数える
   const LINE_PT = 3;
   function groupOf(board, o) {
     const seen = new Array(board.length).fill(false); let best = 0;
@@ -150,13 +154,15 @@
   // 優先札は毎朝せりのあとで相手に回す。はじめに持つ人は種で決める（紙ではじゃんけん）。
   // 3000局の試し：同じ額のときだけ回す形や、はじめに持つ人を決めておく形では、はじめに持つ人が 47% と差が出た（2026-11-11）
   const tok0 = (seed) => (hash("tok" + (seed >>> 0)) & 1 ? "a" : "b"); // はじめに優先札を持つ人
-  function openDay(g) { g.market = g.deck.slice((g.day - 1) * MARKET, g.day * MARKET); g.picks = 0; g.phase = "bid"; g.bid = { a: null, b: null }; g.turn = "a"; }
+  function openDay(g) { g.market = g.deck.slice((g.day - 1) * MARKET, g.day * MARKET); g.picks = 0; g.phase = "bid"; g.bid = { a: null, b: null }; g.turn = "a"; g.order = null; }
+  // その日の順番：せりに勝った人 → 相手 → 相手 → せりに勝った人（行って戻る形。2人とも2回ずつ）
+  const orderOf = (first) => [first, other(first), other(first), first];
   function settleBid(g) {
     const A = g.bid.a, B = g.bid.b, tie = A === B, first = tie ? g.tok : A > B ? "a" : "b", pay = tie ? 0 : g.bid[first];
     g.p[first].money -= pay; g.p[first].paid = (g.p[first].paid || 0) + pay;
     g.tok = other(g.tok);
     g.log.push({ a: "bid", day: g.day, bids: { a: A, b: B }, first, pay, tie, tok: g.tok });
-    g.phase = "play"; g.turn = first; g.first = first;
+    g.phase = "play"; g.turn = first; g.first = first; g.order = orderOf(first);
   }
   const firstOf = (g) => g.first;
   const daysLeft = (g) => DAYS - g.day + 1;
@@ -181,7 +187,7 @@
     else if (mv.a === "up") { p.money -= upCost(g.board, mv.i); g.board[mv.i] = Object.assign({}, g.board[mv.i], { up: true }); g.last = mv.i; g.log.push({ who, a: "up", t: g.board[mv.i].t, i: mv.i }); }
     else { p.money += 1; g.log.push({ who, a: "pass" }); }
     g.picks++;
-    if (g.picks < 2) { g.turn = other(who); return true; }
+    if (g.picks < g.order.length) { g.turn = g.order[g.picks]; return true; }
     // 日のおわり
     const ev = evOf(g), end = { a: "day", day: g.day, ev: ev, inc: {} };
     for (const o of PLAYERS) { const q = g.p[o], inc = allowOf(ev); q.money += inc; q.inc.push(inc); end.inc[o] = inc; }
@@ -191,7 +197,8 @@
     return true;
   }
   // 3つの勝負（おわりに1回だけ）。引き分けた勝負は、残ったお金が多いほうの勝ち。それも同じなら、はじめに優先札を持った人の勝ち（コミの代わり）。
-  // 3000局（2026-11-12）：引き分けは 通り28%・商店会15%・客6%。お金で決めないと優先札の人が 57%、お金で決めて最後を優先札の人にすると 46%（上級 50%）。
+  // 6×6・2手ずつ（3000局、2026-11-12）：引き分けは 通り25%・商店会15%・客7%。優先札の人 51%（上級 51%）・1P 49%。
+  // 5×5・1手ずつのころ（3000局）：引き分けは 通り28%・商店会15%・客6%。お金で決めないと優先札の人が 57%、お金で決めて最後を優先札の人にすると 46%（上級 50%）。
   // はじめのお金を ±1〜2 変える形も試したが 35〜52% と安定しなかった
   const tieTo = (g) => tok0(g.seed);
   const CATS = ["cust", "line", "group"];
@@ -262,6 +269,6 @@
   // 当てられない手で止まったら g.bad にその番号を残す（朝のせりの前の古い記録など。index.html が続きから外す）
   function replay(seed, moves, opts) { const g = newGame(seed, opts), M = moves || []; for (let k = 0; k < M.length; k++) if (!apply(g, M[k])) { g.bad = k; break; } return g; }
 
-  const api = { UP_ADD, EVENTS, EV_KEYS, EV_SEE, GOALS, GOAL_KEYS, MAIN, CORNER, evOff, allowOf, ALLOW, LINE_PT, groupOf, linesOf, terr, CATS, CAT_NM, cats, catVal, tieTo, tok0, costAt, upCost, eventsOf, goalsOf, goalProg, goalPts, evOf, SHOPS, KINDS, N, DAYS, START, PER_KIND, MARKET, hash, rngOf, seedOfDate, deckOf, nb, cust, income, delta, newGame, legal, apply, score, winner, aiMove, replay, other, firstOf, daysLeft };
+  const api = { RV, PICKS, orderOf, UP_ADD, EVENTS, EV_KEYS, EV_SEE, GOALS, GOAL_KEYS, MAIN, CORNER, evOff, allowOf, ALLOW, LINE_PT, groupOf, linesOf, terr, CATS, CAT_NM, cats, catVal, tieTo, tok0, costAt, upCost, eventsOf, goalsOf, goalProg, goalPts, evOf, SHOPS, KINDS, N, DAYS, START, PER_KIND, MARKET, hash, rngOf, seedOfDate, deckOf, nb, cust, income, delta, newGame, legal, apply, score, winner, aiMove, replay, other, firstOf, daysLeft };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.YRK = api;
 })(typeof window !== "undefined" ? window : this);

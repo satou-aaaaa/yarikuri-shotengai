@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'">
 <title>やりくり商店街</title>
-<meta name="description" content="5×5の通りにお店を並べて客を呼ぶ、2人対戦のボードゲーム。1台を2人で回すか、となりの店主と1人で。印刷して紙でも遊べます。">
+<meta name="description" content="6×6の通りにお店を並べて客を呼ぶ、2人対戦のボードゲーム。1台を2人で回すか、となりの店主と1人で。印刷して紙でも遊べます。">
 <meta name="theme-color" content="#eef1ea">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="やりくり商店街">
 <meta property="og:title" content="やりくり商店街：お店を並べて、客を呼ぶ2人対戦">
-<meta property="og:description" content="置き場所・店札の取り合い・朝のせり。10日目に客・通り・商店会の3つの勝負で、2つ勝ったほうの勝ち。印刷して紙でも遊べます。">
+<meta property="og:description" content="置き場所・店札の取り合い・朝のせり。8日目に客・通り・商店会の3つの勝負で、2つ勝ったほうの勝ち。印刷して紙でも遊べます。">
 <meta property="og:url" content="https://satou-aaaaa.github.io/yarikuri-shotengai/">
 <meta property="og:image" content="https://satou-aaaaa.github.io/yarikuri-shotengai/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="やりくり商店街：5×5の通りにお店を並べる2人対戦のボードゲーム">
+<meta property="og:image:alt" content="やりくり商店街：6×6の通りにお店を並べる2人対戦のボードゲーム">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.webmanifest">
@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
-/* 商店街の通り：上に2人の持ち物、まん中に市場（店札3枚）と 5×5 の通り、下に手のボタン */
+/* 商店街の通り：上に2人の持ち物、まん中に市場（店札5枚）と 6×6 の通り、下に手のボタン */
 :root{
   --bg:#eef1ea; --panel:#fbfcf8; --ink:#1d2a2a; --sub:#4d5b5a; --line:#b9c4bd;
   --a:#0b6e60; --b:#86306f; --accent:#b4471a; --cell:#f6f8f3; --good:#0f6b4d; --bad:#a3231b; --hi:#fff3cd;
@@ -57,23 +57,23 @@ button:disabled{opacity:.45;cursor:default}
 .who.a{border-left:6px solid var(--a)} .who.b{border-left:6px dashed var(--b)}
 .who.now{box-shadow:0 0 0 3px var(--accent)}
 .turn{font-family:var(--display);font-weight:900;text-align:center;font-size:1.05rem}
-.market{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.card{border-radius:10px;border:2px solid var(--line);flex-direction:column;gap:0;padding:6px 4px;min-height:86px;background:var(--panel)}
-.card .e{font-size:1.7rem;line-height:1.15}
-.card .nm{font-size:.92rem}
+.market{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.card{border-radius:10px;border:2px solid var(--line);flex-direction:column;gap:0;padding:4px 2px;min-height:80px;min-width:0;background:var(--panel)}
+.card .e{font-size:1.5rem;line-height:1.15}
+.card .nm{font-size:.78rem;white-space:nowrap}
 .card .c{font-size:.82rem;color:var(--sub);font-variant-numeric:tabular-nums;font-weight:500}
 .card[aria-pressed="true"]{border-color:var(--accent);background:var(--hi)}
 .card:disabled{opacity:1;background:transparent;border-style:dashed}
 .card.gone{visibility:hidden}
-.board{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--line);padding:4px;border-radius:12px}
-.cell{aspect-ratio:1;min-height:48px;border-radius:7px;border:none;padding:0;position:relative;background:var(--cell);font-family:var(--body)}
-.cell .e{font-size:clamp(1.25rem,6.4vw,2rem)}
+.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;background:var(--line);padding:3px;border-radius:12px}
+.cell{aspect-ratio:1;min-height:44px;min-width:0;border-radius:7px;border:none;padding:0;position:relative;background:var(--cell);font-family:var(--body)}
+.cell .e{font-size:clamp(1.1rem,5.4vw,1.8rem)}
 .cell .cu{position:absolute;right:4px;bottom:2px;font-size:.78rem;font-weight:700;font-variant-numeric:tabular-nums}
 .cell .mk{position:absolute;left:4px;top:1px;font-size:.72rem;font-weight:700}
 .cell.a{box-shadow:inset 0 0 0 3px var(--a)} .cell.a .mk{color:var(--a)}
 .cell.b{outline:3px dashed var(--b);outline-offset:-4px} .cell.b .mk{color:var(--b)}
 .cell.can{background:var(--hi);cursor:pointer}
-.cell.can .pv{font-size:.82rem;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums}
+.cell.can .pv{font-size:.7rem;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums}
 .pv .p{color:var(--good)} .pv .m{color:var(--bad)}
 .cell:disabled{opacity:1;cursor:default}
 .cell.last{animation:pop .4s ease-out}
@@ -110,7 +110,7 @@ html.a11y-motion .cell .gain,html.a11y-motion .who .n.up{animation:none}
 .rules div{display:grid;grid-template-columns:2em 1fr;gap:6px}
 .end{border:2px solid var(--ink)}
 .tb{max-width:340px;margin:0 auto;width:100%}
-.tc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tc{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
 .meterline{text-align:center;font-variant-numeric:tabular-nums}
 .meterline b{font-family:var(--display);font-size:1.3rem}
 .sc{width:100%;border-collapse:collapse;margin:8px 0;font-size:15px}
@@ -305,17 +305,17 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
 <main id="app"></main>
 <dialog id="howto" aria-labelledby="howto-t">
   <h2 id="howto-t">遊び方</h2>
-  <p><b>ねらい</b>：5×5の通りにお店を並べて、客を呼びます。10日たったら1回だけ、<b>客・通り・商店会の3つの勝負</b>をして、<b>2つ勝ったほうの勝ち</b>です。毎日の点の計算はありません。</p>
+  <p><b>ねらい</b>：6×6の通りにお店を並べて、客を呼びます。8日たったら1回だけ、<b>客・通り・商店会の3つの勝負</b>をして、<b>2つ勝ったほうの勝ち</b>です。毎日の点の計算はありません。</p>
   <h3>じゅんび</h3>
   <ul>
     <li>2人とも <span data-y="START">4</span>💰 から始めます。</li>
     <li>はじめに<b>優先札</b>を持つ人を決めます（アプリでは自動。紙ではじゃんけん）。</li>
   </ul>
-  <h3>1日のながれ（10日くりかえす）</h3>
+  <h3>1日のながれ（8日くりかえす）</h3>
   <ol>
-    <li><b>市場</b>：店札が3枚並びます。</li>
+    <li><b>市場</b>：店札が5枚並びます。</li>
     <li><b>朝のせり</b>：先に店札を取る権利に、いくら出すかをこっそり決め、同時に開きます。多いほうが先に取り、その額を払います（少ないほうは払いません）。同じ額なら、どちらも払わず、優先札を持つ人が先です。せりのあと、優先札はとなりの人へ回ります。</li>
-    <li><b>取る</b>：先の人から1人1枚ずつ、値段を払って店札を取り、空き地に置きます。取らずに<b>店番</b>をすると 1💰もらえます。だれも取らなかった店札は捨てます。</li>
+    <li><b>取る</b>：1人2回ずつ、<b>先の人 → あとの人 → あとの人 → 先の人</b>の順に選びます（行って戻る順なので、あとの人は2枚続けて取れます）。1回ごとに、値段を払って店札を1枚取り、空き地に置きます。取らずに<b>店番</b>をすると 1💰もらえます。だれも取らなかった店札は捨てます。</li>
     <li><b>日のおわり</b>：2人とも <span data-y="ALLOW">5</span>💰もらいます（客の数は関係ありません）。</li>
   </ol>
   <h3>お店と客</h3>
@@ -331,10 +331,10 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
     <li>残したお金は点になりません。ただし、おわりの勝負が引き分けたときに使います（下）。</li>
   </ul>
   <h3>おわり：3つの勝負</h3>
-  <p>10日目のおわりに1回だけ、次の3つをそれぞれ比べ、<b>2つ勝ったほうの勝ち</b>です。</p>
+  <p>8日目のおわりに1回だけ、次の3つをそれぞれ比べ、<b>2つ勝ったほうの勝ち</b>です。</p>
   <ol>
     <li><b>客</b>：自分の店の客の合計（🏠住宅は0）。足し算はここだけです。</li>
-    <li><b>通り</b>：横5列・たて5列（全部で10列）のうち、自分の店が相手より多い列の数。同じ数の列は、どちらのものでもありません。</li>
+    <li><b>通り</b>：横6列・たて6列（全部で12列）のうち、自分の店が相手より多い列の数。同じ数の列は、どちらのものでもありません。</li>
     <li><b>商店会</b>：上下左右でつながった自分の店（🏠住宅もふくむ）の、いちばん大きいかたまりの軒数。</li>
   </ol>
   <p>引き分けた勝負は、<b>残ったお金が多いほう</b>の勝ち。お金も同じなら、<b>はじめに優先札を持った人</b>の勝ちです（1日目に先に取らされるぶんの埋め合わせ）。だから引き分けで終わることはありません。</p>
@@ -351,7 +351,7 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
     <li><b>大通り</b>：まん中の横の列は、客 +1・値段 +1（住宅は値段だけ）。</li>
     <li><b>行事の札</b>：毎日1枚。今日とその先2日分が見えます。どれも「今日の値段」か「今日もらうお金」が変わるだけで、客の数は変えません。</li>
     <li><b>増築</b>：店札を取るかわりに、自分の店（住宅のぞく）を2階建てにできます。値段はその店と同じ、客 +2。陣取りでは2軒と数えます。</li>
-    <li><b>秘密の目標</b>：はじめに2枚ずつ。10日目のおわりに満たしていれば、目標に書いた数だけ「客」の勝負に足します。相手の目標はおわるまで見えません。</li>
+    <li><b>秘密の目標</b>：はじめに2枚ずつ。8日目のおわりに満たしていれば、目標に書いた数だけ「客」の勝負に足します。相手の目標はおわるまで見えません。</li>
   </ul>
   <p class="note">2人で遊ぶときは、1台を順番に回します。時間制限はありません。紙に印刷しても遊べます。</p>
   <p><a id="fb2" target="_blank" rel="noopener">感想を送る</a></p>
@@ -394,7 +394,8 @@ function load() {
 }
 // 今のきまりで当てられない手のある途中経過（朝のせりの前の古い記録）は、続きからに出さない（2026-11-11 CodeRabbit #6）
 // 合わせる前にも見る（新しいほうが古い記録でも、もう一方の当てられる記録を残す）。再生で例外が出る記録も外す（ホームが開けなくならないように）
-function runOk(r) { try { return !!r && Array.isArray(r.moves) && Y.replay(r.seed, r.moves, { adv: !!r.adv }).bad === undefined; } catch (e) { return false; } }
+// rv：きまりの版。版がちがう途中の回は続きから外す（前の小さい盤・1手ずつのころの手を 6×6 に当てない。2026-11-12）
+function runOk(r) { try { return !!r && Array.isArray(r.moves) && (r.rv || 1) === Y.RV && Y.replay(r.seed, r.moves, { adv: !!r.adv }).bad === undefined; } catch (e) { return false; } }
 function tidyRuns(s) { for (const m in s.runs) if (s.runs[m] && !runOk(s.runs[m])) s.runs[m] = null; return s; }
 function saveWarn(on) { let b = document.getElementById("savewarn"); const l = document.getElementById("live"), W = "この端末に記録を保存できませんでした。ページを開き直すと、いまの記録が消えます"; if (!on) { if (b) { b.remove(); if (saveWarn.o) saveWarn.o.disconnect(); if (l && l.textContent.includes(W)) l.textContent = l.textContent.replace(W, "").replace(/^[。\s]+|[。\s]+$/g, ""); } return; } if (b) return; b = document.createElement("div"); b.id = "savewarn"; b.setAttribute("role", "status"); b.textContent = W; b.style.cssText = "position:sticky;top:0;z-index:9999;padding:8px 12px;background:#fff3cd;color:#000;font-size:15px;line-height:1.5;text-align:center;pointer-events:none;border-bottom:2px solid #8a6d00"; (document.body || document.documentElement).prepend(b); if (l) { l.textContent = W; if (window.MutationObserver) { saveWarn.o = new MutationObserver(() => { if (document.getElementById("savewarn") && l.textContent && !l.textContent.includes(W)) l.textContent += "。" + W; }); saveWarn.o.observe(l, { childList: true, characterData: true, subtree: true }); } } } // 帯は画面のいちばん上に場所を取り、#live でも読み上げる。保存できたら帯と #live の警告を消す
 function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); const j = JSON.stringify(s); try { localStorage.setItem(KEY, j); mem = null; saveWarn(false); } catch (e) { mem = j; saveWarn(true); } return s; }
@@ -455,7 +456,7 @@ function home() {
   const achNow = ACH.filter((a) => a[3](s) >= a[4]).length;
   $("app").innerHTML = `
   <header class="row" style="align-items:baseline;justify-content:space-between"><h1 class="title">やりくり商店街</h1><span class="note">2人対戦のボードゲーム</span></header>
-  <p class="sub">5×5の通りにお店を並べて客を呼びます。10日目に、客・通り・商店会の3つの勝負で2つ勝ったほうの勝ち。</p>
+  <p class="sub">6×6の通りにお店を並べて客を呼びます。8日目に、客・通り・商店会の3つの勝負で2つ勝ったほうの勝ち。</p>
   <section class="box" aria-labelledby="h-tut0"><h2 id="h-tut0">はじめての人へ</h2><p class="note">練習の盤で、せり・置き方・日のおわり・おわりの点を1歩ずつ（2分くらい）。</p><button class="${s.st.games ? "" : "main "}big" id="go-tut">チュートリアル</button></section>
   <section class="box" aria-labelledby="h-rule">
     <h2 id="h-rule">きまり</h2>
@@ -513,8 +514,9 @@ function howtoEx() {
 // ===== チュートリアル（2026-11-11 satouさん「ルールがわかりづらい」）=====
 // 決まった小さな盤で、せり → 札を取る → 置く → 日のおわり → お金のつかいみち → おわりの3つの勝負を1歩ずつ。いつでも「とばす」でホームへ。
 // 数はすべて rules.js（Y.delta・Y.income・Y.groupOf・Y.linesOf）から作る。記録には何も残さない。
-const TB = () => { const b = Array(Y.N * Y.N).fill(null); b[12] = { t: "pan", o: "a" }; b[7] = { t: "ie", o: "a" }; b[16] = { t: "cafe", o: "b" }; return b; };
-const TM = ["yasai", "cafe", "hon"], TBID = 1; // 市場の3枚・店主のせりの額
+const P = (x, y) => y * Y.N + x; // 練習の盤のマス（x 横・y たて、0から）
+const TB = () => { const b = Array(Y.N * Y.N).fill(null); b[P(2, 2)] = { t: "pan", o: "a" }; b[P(2, 1)] = { t: "ie", o: "a" }; b[P(1, 3)] = { t: "cafe", o: "b" }; return b; };
+const TM = ["yasai", "cafe", "hon", "pan", "ie"], TBID = 1; // 市場の5枚・店主のせりの額
 let TUT = null;
 function tutBoard(b, can) {
   return `<div class="board tb" role="group" aria-label="練習の盤">${b.map((c, i) => {
@@ -525,20 +527,20 @@ function tutBoard(b, can) {
 }
 const tutMeter = (b) => `<p class="meterline">お店の客　●あなた <b>${Y.income(b, "a")}</b>人　◆店主 <b>${Y.income(b, "b")}</b>人</p>`;
 const TSTEPS = [
-  { h: "やりくり商店街へようこそ", body: () => `<p>5×5の通りにお店を並べて、客を呼ぶゲームです。10日たったら1回だけ、<b>客・通り・商店会の3つの勝負</b>をして、2つ勝ったほうの勝ち。</p><p>練習の盤で、1日のながれを1歩ずつやってみましょう。</p>${tutBoard(TUT.b)}<p class="note">●があなたの店、◆がとなりの店主の店です。右下の数字は、その店の客の数です。</p>` },
+  { h: "やりくり商店街へようこそ", body: () => `<p>6×6の通りにお店を並べて、客を呼ぶゲームです。8日たったら1回だけ、<b>客・通り・商店会の3つの勝負</b>をして、2つ勝ったほうの勝ち。</p><p>練習の盤で、1日のながれを1歩ずつやってみましょう。</p>${tutBoard(TUT.b)}<p class="note">●があなたの店、◆がとなりの店主の店です。右下の数字は、その店の客の数です。</p>` },
   { h: "① 朝のせり", need: true, body: () => `<p>毎朝、どちらが先に店札を取るかを<b>せり</b>で決めます。こっそり額を決めて、同時に開きます。</p><ul><li>多いほうが先に取り、その額を払う（少ないほうは払わない）</li><li>同じ額なら、どちらも払わず<b>優先札</b>を持つ人が先（今日はあなたが持っています）</li></ul>
       ${TUT.bid === null ? `<p>出す額を押してください（店主は ${TBID}💰 を出します。ないしょです）。</p><div class="row">${[0, 1, 2].filter((v) => Y.START - (v > TBID ? v : 0) >= S.cafe.c).map((v) => `<button class="big" data-tbid="${v}">${v}💰</button>`).join("")}</div><p class="note">いまは ${Y.START}💰。せりで払うと、このあと ${S.cafe.c}💰の☕喫茶が買えなくなるので、今日は出せる額だけ並べています。</p>`
       : `<div class="bid"><div class="vs"><div class="${TUT.bid >= TBID ? "win" : ""}">●あなた<b>${TUT.bid}💰</b></div><div class="${TUT.bid < TBID ? "win" : ""}">◆店主<b>${TBID}💰</b></div></div></div><p>${TUT.bid > TBID ? `あなたのほうが多いので先に取ります。${TUT.bid}💰払います。` : TUT.bid === TBID ? "同じ額なので、どちらも払いません。優先札を持つあなたが先です。優先札は店主にわたします。" : `店主のほうが多いので、店主が先に取り ${TBID}💰払います。あなたは払いません。`}</p><p class="note">先に取れると良い札を選べます。でも払ったお金は戻りません。どれだけ出すかが、かけひきです。</p>`}` },
-  { h: "② 店札を取る", need: true, body: () => `<p>市場に3枚の店札が並びます。お金を払って1枚取ります。</p><p>今回は <b>☕喫茶</b> を押してください。</p><div class="cards tc">${TM.map((t, m) => `<button class="card" data-tm="${m}" aria-pressed="${TUT.pick === m}"><span class="e" aria-hidden="true">${S[t].e}</span><span class="nm">${S[t].nm}</span><span class="c">${S[t].c}💰</span></button>`).join("")}</div>${TUT.msg ? `<p class="live" role="status">${TUT.msg}</p>` : ""}${rulesHtml()}` },
+  { h: "② 店札を取る", need: true, body: () => `<p>市場に5枚の店札が並びます。1回に1枚、お金を払って取ります。1日に<b>1人2回</b>、「先 → あと → あと → 先」の順に取ります。</p><p>今回は <b>☕喫茶</b> を押してください。</p><div class="cards tc">${TM.map((t, m) => `<button class="card" data-tm="${m}" aria-pressed="${TUT.pick === m}"><span class="e" aria-hidden="true">${S[t].e}</span><span class="nm">${S[t].nm}</span><span class="c">${S[t].c}💰</span></button>`).join("")}</div>${TUT.msg ? `<p class="live" role="status">${TUT.msg}</p>` : ""}${rulesHtml()}` },
   { h: "③ 空き地に置く", need: true, body: () => TUT.at === null
       ? `<p>空き地の数字は、そこに置いたとき<b>あなたの客が増える数</b>です（下の小さい数は店主の増減）。</p><p>☕喫茶は、となりに🍞パン屋や📚本屋があると客が増えます。好きな所を押してください。</p>${tutBoard(TUT.b, "cafe")}${tutMeter(TUT.b)}`
       : `${tutBoard(TUT.b)}${tutMeter(TUT.b)}<p>${TUT.got.me > 0 ? `あなたの客が <b>+${TUT.got.me}</b> 人ふえました。` : "ここでは客が増えませんでした。"}${TUT.got.op ? `店主の客も ${TUT.got.op > 0 ? "+" : ""}${TUT.got.op}。` : ""}</p><p class="note">同じ種類の店が相手の店ととなり合うと、客を取り合って両方 −1 です。${TUT.best > TUT.got.me ? `いちばん増える所は +${TUT.best} でした。` : "いちばん増える所を選べました！"}</p>` },
-  { h: "④ 日のおわり", body: () => { const pay = TUT.bid > TBID ? TUT.bid : 0, before = Y.START - pay - S.cafe.c; return `<p>日のおわりには、<b>2人とも ${Y.ALLOW}💰</b>もらいます。客の数は関係ありません（毎日の計算はなし）。</p><div class="box"><p style="text-align:center;font-size:1.2rem">💰${before} ＋ ${Y.ALLOW} ＝ <b>💰${before + Y.ALLOW}</b></p><p class="note" style="text-align:center">（はじめ ${Y.START}💰${pay ? ` − せり ${pay}💰` : ""} − 喫茶 ${S.cafe.c}💰 ＋ ${Y.ALLOW}💰）</p></div><p class="note">客は、10日目のおわりに1回だけ数えます。それまでは、店を置くときに「何人ふえるか」の見当をつけるだけで十分です。</p>`; } },
+  { h: "④ 日のおわり", body: () => { const pay = TUT.bid > TBID ? TUT.bid : 0, before = Y.START - pay - S.cafe.c; return `<p>日のおわりには、<b>2人とも ${Y.ALLOW}💰</b>もらいます。客の数は関係ありません（毎日の計算はなし）。</p><div class="box"><p style="text-align:center;font-size:1.2rem">💰${before} ＋ ${Y.ALLOW} ＝ <b>💰${before + Y.ALLOW}</b></p><p class="note" style="text-align:center">（はじめ ${Y.START}💰${pay ? ` − せり ${pay}💰` : ""} − 喫茶 ${S.cafe.c}💰 ＋ ${Y.ALLOW}💰）</p><p class="note" style="text-align:center">この練習では、2回目の番は店番も取ることもせずに数えています。</p></div><p class="note">客は、${Y.DAYS}日目のおわりに1回だけ数えます。それまでは、店を置くときに「何人ふえるか」の見当をつけるだけで十分です。</p>`; } },
   { h: "⑤ お金のつかいみち", body: () => `<p>お金は<b>店を買うため</b>に使います。借りることはできません。足りないときは、取らずに<b>店番</b>をすると 1💰もらえます。</p><p>お金を残しても点にはなりません。ただし、おわりの勝負が引き分けたときは、<b>残ったお金が多いほうの勝ち</b>になります。</p><p class="note">使い切るか、少し残すか。せりにいくら出すかとあわせて考えどころです。</p>` },
-  { h: "⑥ おわりの3つの勝負", body: () => { const b = TEND(); return `<p>10日目のおわりに、1回だけ3つの勝負をします。<b>2つ勝ったほうの勝ち</b>。</p>${tutBoard(b)}<ul><li><b>客</b>：自分の店の客の合計 → ●${Y.income(b, "a")}・◆${Y.income(b, "b")}</li><li><b>通り</b>：横5列・たて5列のうち、自分の店が多い列の数 → ●${Y.linesOf(b, "a")}列・◆${Y.linesOf(b, "b")}列</li><li><b>商店会</b>：つながった自分の店のいちばん大きいかたまり（ななめはつながらない）→ ●${Y.groupOf(b, "a")}軒・◆${Y.groupOf(b, "b")}軒</li></ul><p class="note">引き分けた勝負は、残ったお金が多いほう、それも同じなら、はじめに優先札を持った人の勝ちです（1日目に先に取らされるぶんの埋め合わせ）。足し算は客の合計だけです。</p>`; } },
-  { h: "これで遊べます", body: () => `<p>せり → 札を取る → 置く → ${Y.ALLOW}💰もらう、を10日くりかえし、おわりに3つの勝負をします。</p><p class="note">慣れたらホームの「きまり」で<b>上級</b>にすると、大通り・行事の札・増築・秘密の目標が入ります。</p><div class="row"><button class="main big" id="tut-play">練習で遊んでみる</button></div>` },
+  { h: "⑥ おわりの3つの勝負", body: () => { const b = TEND(); return `<p>8日目のおわりに、1回だけ3つの勝負をします。<b>2つ勝ったほうの勝ち</b>。</p>${tutBoard(b)}<ul><li><b>客</b>：自分の店の客の合計 → ●${Y.income(b, "a")}・◆${Y.income(b, "b")}</li><li><b>通り</b>：横6列・たて6列のうち、自分の店が多い列の数 → ●${Y.linesOf(b, "a")}列・◆${Y.linesOf(b, "b")}列</li><li><b>商店会</b>：つながった自分の店のいちばん大きいかたまり（ななめはつながらない）→ ●${Y.groupOf(b, "a")}軒・◆${Y.groupOf(b, "b")}軒</li></ul><p class="note">引き分けた勝負は、残ったお金が多いほう、それも同じなら、はじめに優先札を持った人の勝ちです（1日目に先に取らされるぶんの埋め合わせ）。足し算は客の合計だけです。</p>`; } },
+  { h: "これで遊べます", body: () => `<p>せり → 札を取る → 置く → ${Y.ALLOW}💰もらう、を8日くりかえし、おわりに3つの勝負をします。</p><p class="note">慣れたらホームの「きまり」で<b>上級</b>にすると、大通り・行事の札・増築・秘密の目標が入ります。</p><div class="row"><button class="main big" id="tut-play">練習で遊んでみる</button></div>` },
 ];
-const TEND = () => { const b = Array(Y.N * Y.N).fill(null); const A = [0, 1, 2, 5, 7, 12, 13, 17], B = [3, 4, 8, 9, 14, 18, 19, 22]; const k = ["pan", "cafe", "ie", "hon", "yasai"]; A.forEach((i, n) => (b[i] = { t: k[n % 5], o: "a" })); B.forEach((i, n) => (b[i] = { t: k[(n + 2) % 5], o: "b" })); return b; };
+const TEND = () => { const b = Array(Y.N * Y.N).fill(null); const A = [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [2, 2], [3, 2], [2, 3], [0, 4], [1, 4], [0, 5], [5, 5]].map(([x, y]) => P(x, y)), B = [[3, 0], [4, 0], [5, 0], [3, 1], [4, 1], [4, 2], [5, 2], [3, 3], [4, 3], [5, 4], [2, 5], [3, 5]].map(([x, y]) => P(x, y)); const k = ["pan", "cafe", "ie", "hon", "yasai"]; A.forEach((i, n) => (b[i] = { t: k[n % 5], o: "a" })); B.forEach((i, n) => (b[i] = { t: k[(n + 2) % 5], o: "b" })); return b; };
 function tutorial(i) {
   gen++; G = null; RUN = null; MODE = null;
   if (!TUT || i === 0) TUT = { b: TB(), bid: null, pick: null, at: null, got: null, best: 0, msg: "" };
@@ -562,7 +564,7 @@ function start(mode, date) {
   const s = load();
   if (mode === "d" && s.days[date]) return home(); // 別のタブで今日の盤を終えていたら、もう一度は始めない
   const seed = date ? Y.seedOfDate(date) : (Math.random() * 4294967296) >>> 0;
-  const run = { mode, date: date || todayKey(), seed, lv: mode === "v" ? null : s.lv === "easy" ? "easy" : "normal", adv: s.rule === "adv", moves: [], id: Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36) };
+  const run = { mode, date: date || todayKey(), seed, lv: mode === "v" ? null : s.lv === "easy" ? "easy" : "normal", adv: s.rule === "adv", rv: Y.RV, moves: [], id: Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36) };
   save((x) => { x.runs[mode] = run; });
   open(mode, run);
 }
@@ -692,7 +694,7 @@ function draw() {
     const rule = `多く出した人が先に札を選び、その額を払います（もう一方は払いません）。同じ額ならどちらも払わず、優先札を持つ${tokL(G.tok)}が先。`;
     if (hand) bidBox = `<section class="box bid" aria-labelledby="h-bid"><h2 id="h-bid" tabindex="-1">朝のせり：2Pの番</h2><p>${tokL("a")}は額を決めました。2Pに渡してください（1Pの額は見えません）。</p><button class="main big" id="hand-ok">2Pです。額を決める</button></section>`;
     else if (human) bidBox = `<section class="box bid" aria-labelledby="h-bid"><h2 id="h-bid" tabindex="-1">朝のせり${MODE === "v" ? `：${tokL(o)}の番` : ""}</h2>
-      <p>今日の3枚を見て、先に選ぶ権利にいくら出しますか？${MODE === "v" ? "相手に見えないように決めてください。" : "店主の額は、決めたあとで開きます。"}</p>
+      <p>今日の5枚を見て、先に選ぶ権利にいくら出しますか？順番は「先 → あと → あと → 先」です。${MODE === "v" ? "相手に見えないように決めてください。" : "店主の額は、決めたあとで開きます。"}</p>
       <p class="note">${rule}</p>
       <div class="stp"><button id="bid-m" aria-label="1へらす" ${bidV <= 0 ? "disabled" : ""}>−</button><output id="bid-v" aria-live="polite">${bidV}💰</output><button id="bid-p" aria-label="1ふやす" ${bidV >= mx ? "disabled" : ""}>＋</button></div>
       <button class="main big" id="bid-go">${bidV}💰で決める</button></section>`;
@@ -704,7 +706,7 @@ function draw() {
     de = `<section class="box dayend" aria-labelledby="h-de"><h2 id="h-de" tabindex="-1">${dayEnd.day}日目のおわり${e ? `（${e.e}${e.nm}）` : ""}</h2>
       <p>2人とも <b>+${inc}💰</b>${inc !== Y.ALLOW ? `（いつもは ${Y.ALLOW}💰）` : ""}</p>
       ${["a", "b"].map((o) => `<div class="pl"><b>${nm[o]}</b><span class="mv">💰${dayEnd.rows[o].before} → ${dayEnd.rows[o].after}</span></div>`).join("")}
-      <p class="note">勝ち負け（客・通り・商店会）は、10日目のおわりに1回だけ決めます。</p>
+      <p class="note">勝ち負け（客・通り・商店会）は、${Y.DAYS}日目のおわりに1回だけ決めます。</p>
       <button class="main big" id="nextday">${G.over ? "結果を見る" : `${G.day}日目へ ▶`}</button></section>`;
   }
   let end = "";
@@ -729,13 +731,13 @@ function draw() {
   $("app").innerHTML = `
   <div class="row" style="justify-content:space-between;align-items:center"><button id="back">← ホーム</button><span class="note">${title}${RUN.lv ? `・店主 ${RUN.lv === "easy" ? "やさしい" : "ふつう"}` : ""}</span></div>
   <div class="bar">${who("a")}${who("b")}</div>
-  <p class="turn">${G.over ? "おしまい" : `${G.day} / ${Y.DAYS}日目　${G.phase === "bid" && !bidRes ? "朝のせり" : `${nm[G.turn]}の番${human ? "" : "…"}`}`}${adv ? "　<span class=\"tag\">上級</span>" : ""}</p>
+  <p class="turn">${G.over ? "おしまい" : `${G.day} / ${Y.DAYS}日目　${G.phase === "bid" && !bidRes ? "朝のせり" : `${nm[G.turn]}の番（${G.picks + 1}/${G.order.length}）${human ? "" : "…"}`}`}${adv ? "　<span class=\"tag\">上級</span>" : ""}</p>
   ${evs}
   ${bidBox}
   <div class="market" role="group" aria-label="市場の店札">${cards}</div>
   <p class="live" id="live" role="status" aria-live="polite">${note}</p>
   ${de}
-  <div class="board" role="group" aria-label="通り（5×5）">${cells}</div>
+  <div class="board" role="group" aria-label="通り（6×6）">${cells}</div>
   <div class="row">${adv ? `<button id="up" aria-pressed="${upMode}" ${anyUp && G.phase !== "bid" ? "" : "disabled"}>${upMode ? "増築をやめる" : "増築する"}</button>` : ""}<button id="pass" ${human && G.phase !== "bid" ? "" : "disabled"}>店番する +1💰</button></div>
   ${goals}
   ${dayEnd ? "" : end}
@@ -753,7 +755,7 @@ function draw() {
   if ($("bid-p")) $("bid-p").onclick = () => { bidV++; draw(); $("bid-p").focus(); };
   if ($("bid-go")) $("bid-go").onclick = () => { const v = bidV, o = G.turn; peek = false; if (act({ a: "bid", v })) { bidV = 0; if (MODE === "v" && o === "a") hand = true; draw(); next(); } };
   if ($("hand-ok")) $("hand-ok").onclick = () => { hand = false; draw(); };
-  if ($("bid-ok")) $("bid-ok").onclick = () => { bidRes = null; note = `${names(MODE)[G.turn]}の番。市場の店札を1枚選んでください。`; draw(); next(); };
+  if ($("bid-ok")) $("bid-ok").onclick = () => { bidRes = null; note = `${names(MODE)[G.turn]}の番（今日の順番：${G.order.map((o) => names(MODE)[o]).join(" → ")}）。市場の店札を1枚選んでください。`; draw(); next(); };
   if ($("nextday")) $("nextday").onclick = () => { dayEnd = null; note = G.over ? "" : `${G.day}日目です。朝のせりから。`; draw(); next(); };
   if ($("again")) $("again").onclick = () => start(MODE === "v" ? "v" : "p", null);
   if ($("home2")) $("home2").onclick = home;
