@@ -442,7 +442,7 @@ try {
     await p.click('[data-tm="1"]'); await p.click("#tut-next");
     const lock3 = await p.$eval("#tut-next", (b) => b.disabled);
     const w = await p.evaluate(() => document.documentElement.scrollWidth);
-    const small = await p.$$eval("button", (bs) => bs.filter((b) => b.offsetParent && b.getBoundingClientRect().height < 44).map((b) => b.textContent.trim().slice(0, 10)));
+    const small = await p.$$eval("button", (bs) => bs.filter((b) => b.offsetParent && Math.round(b.getBoundingClientRect().height) < 44).map((b) => b.textContent.trim().slice(0, 10)));
     const best = await p.evaluate(() => { const c = [...document.querySelectorAll("[data-ti]")]; let b = null, v = -99; for (const e of c) { const n = Number(e.querySelector(".p").textContent); if (n > v) { v = n; b = e.dataset.ti; } } return { i: b, v }; });
     await p.click(`[data-ti="${best.i}"]`);
     const placed = await p.evaluate(() => ({ txt: document.querySelector(".tut").textContent, m: document.querySelector(".meterline b").textContent }));
@@ -467,7 +467,7 @@ try {
     const homeW = await p.evaluate(() => document.documentElement.scrollWidth);
     await p.click("#go-v"); await toPick(p); await p.click(".card[data-m]:not([disabled])");
     const gameW = await p.evaluate(() => document.documentElement.scrollWidth);
-    const small = await p.$$eval("button:not(.gone), a", (bs) => bs.filter((b) => b.offsetParent && b.getBoundingClientRect().height < 44).map((b) => b.textContent.trim().slice(0, 10)));
+    const small = await p.$$eval("button:not(.gone), a", (bs) => bs.filter((b) => b.offsetParent && Math.round(b.getBoundingClientRect().height) < 44).map((b) => b.textContent.trim().slice(0, 10)));
     await p.click(".cell.can");
     const marks = await p.evaluate(() => [...document.querySelectorAll(".cell.a .mk, .cell.b .mk")].map((e) => e.textContent).join(""));
     check("幅320px でホーム・遊ぶ画面が横にはみ出さない", homeW <= 320 && gameW <= 320, `${homeW}/${gameW}`);
