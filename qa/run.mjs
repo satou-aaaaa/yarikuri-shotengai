@@ -275,6 +275,8 @@ try {
     check("2人対戦：1P・2Pの名前で、店札を選ぶと空き地全部に増え方が出る", /●1P/.test(two) && /◆2P/.test(two) && pv === Y.N * Y.N, `${two} ${pv}`);
     check("2人対戦：" + Y.DAYS + "日まで通しで遊べ、勝ち負けが出て、回数（two）を記録する・今日の盤の記録には入れない", done && /2Pの勝ち|1Pの勝ち|引き分け/.test(res) && s.st.two === 1 && Object.keys(s.days).length === 0, res);
     check("おわったら結果の見出しにフォーカスが移る", await p.evaluate(() => document.activeElement && document.activeElement.id === "h-end"));
+    { const t = await p.evaluate(() => { const G = __yk.G, w = __yk.Y.winner(G), el = document.querySelector("#tip"), want = w === null ? null : __yk.tipFor(G, __yk.Y.other(w)); return { want, got: el ? el.dataset.cat : null, txt: el ? el.textContent : "", lo: w === null ? "" : w === "a" ? "2P" : "1P" }; });
+      check("2人対戦：負けた人へのコツを、名前を添えて1行だけ出す", t.want === null ? t.got === null : t.got === t.want && t.txt.includes(t.lo), JSON.stringify(t)); }
     await p.close(); }
 
   STEP = "1人で今日の盤";
@@ -421,6 +423,9 @@ try {
     check("上級：おわりまで遊べる", await playOut(p));
     const e = await p.evaluate(() => ({ h: document.querySelectorAll(".end ~ section h3, section h3").length, a: __yk.Y.cats(__yk.G).cust.a, m: __yk.Y.income(__yk.G.board, "a", true) + __yk.Y.goalPts(__yk.G, "a"), rows: document.querySelectorAll("table.sc tbody tr").length, txt: document.body.textContent.includes("3つの勝負") && document.body.textContent.includes("秘密の目標") && document.body.textContent.includes("商店会") }));
     check("上級：おわりに両方の目標を見せ、目標の数を「客」の勝負に足し、3つの勝負の表を出す", e.h >= 2 && e.a === e.m && e.rows === 3 && e.txt, JSON.stringify(e));
+    // 負けた勝負のコツ：あなたが負けた勝負のうち差がいちばん大きいもの（客は3人で1軒分）を1行だけ出す。全部勝ったら出さない（2026-11-18 週1の磨き）
+    const tp = await p.evaluate(() => { const Y = __yk.Y, G = __yk.G, c = Y.cats(G); const lost = Y.CATS.filter((k) => c[k].w === "b").map((k) => [k, (c[k].b - c[k].a) / (k === "cust" ? 3 : 1)]).sort((x, y) => y[1] - x[1]); const el = document.querySelectorAll("#tip"); return { want: lost.length ? lost[0][0] : null, n: el.length, got: el[0] ? el[0].dataset.cat : null, txt: el[0] ? el[0].textContent : "", tips: Y.CATS.every((k) => typeof __yk.CAT_TIP[k] === "string" && __yk.CAT_TIP[k].startsWith(Y.CAT_NM[k] + "：")), win3: (() => { const g = JSON.parse(JSON.stringify(G)); g.board = g.board.map((x) => (x ? { ...x, o: "a" } : x)); return __yk.tipFor(g, "a"); })(), lose: (() => { const g = JSON.parse(JSON.stringify(G)); g.board = g.board.map((x) => (x ? { ...x, o: "b" } : x)); return __yk.tipFor(g, "a"); })() }; });
+    check("おわりに、負けた勝負のうち差がいちばん大きいもののコツを1行だけ出す（全部勝ったら出さない）", tp.tips && (tp.want === null ? tp.n === 0 : tp.n === 1 && tp.got === tp.want && tp.txt.includes("次のコツ")) && tp.win3 === null && tp.lose !== null, JSON.stringify(tp));
     await p.close(); }
   { const p = await fresh(ctx); await p.click("#rl-a"); await p.click("#go-v");
     const hid = !(await p.$(".goals")); await p.click("#peek"); const shown = await p.$$eval(".goals li", (a) => a.length); const who = await p.evaluate(() => __yk.G.turn);

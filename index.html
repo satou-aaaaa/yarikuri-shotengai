@@ -117,6 +117,7 @@ html.a11y-motion .cell .gain,html.a11y-motion .who .n.up{animation:none}
 .sc caption{text-align:left;font-weight:700;padding-bottom:4px}
 .sc th,.sc td{border-bottom:1px solid var(--line, #ccc);padding:4px 6px;text-align:right}
 .sc th[scope=row]{text-align:left;font-weight:400}
+.tip{background:var(--hi);color:var(--ink);border-left:4px solid var(--accent);padding:8px 10px;border-radius:6px;margin:8px 0}
 .sc tr:last-child th,.sc tr:last-child td{border-bottom:0;font-size:17px}
 .res{font-family:var(--display);font-size:1.5rem;font-weight:900;text-align:center}
 /* 上級ルール：大通りは色だけでなく斜めの線で分ける。2階建ては「2F」の字 */
@@ -653,6 +654,14 @@ function finish() {
 }
 
 // 3つの勝負の表（rules.js の cats と同じ。QA が見る）
+// 負けた勝負のコツ（次の回で試せる1行。いちばん差が大きく負けた勝負だけ。2026-11-18 週1の磨き）
+const CAT_TIP = {
+  cust: "客：🏠住宅のとなりの🥕八百屋や、📚・🍞のとなりの☕喫茶は客がふえます。同じ種類を相手の店のとなりに置くと、両方へります。",
+  line: "通り：相手と同じ数の列に1軒足すと、1列取れます。もう勝っている列より、取り合っている列へ。",
+  group: "商店会：自分の店を上下左右につなげると大きくなります（🏠住宅も数えます）。相手に間へ置かれる前に、つなぎ目を埋めましょう。",
+};
+// o が負けた勝負のうち、差がいちばん大きいもの（客は3人で1軒分と見る）。負けた勝負が無ければ null
+const tipFor = (g, o) => { const c = Y.cats(g), t = Y.other(o); const lost = Y.CATS.filter((k) => c[k].w === t).map((k) => [k, (c[k][t] - c[k][o]) / (k === "cust" ? 3 : 1)]); lost.sort((p, q) => q[1] - p[1]); return lost.length ? lost[0][0] : null; };
 const catRows = () => { const c = Y.cats(G), mark = (k, o) => (c[k].w === o ? "◯" : ""); return Y.CATS.map((k) => [k === "cust" ? `客${G.adv ? "（目標をふくむ）" : ""}` : k === "line" ? "通り（取った列）" : "商店会（いちばん大きいかたまり）", (o) => `${mark(k, o)} ${c[k][o]}${c[k].tie && c[k].w === o ? (G.p.a.money !== G.p.b.money ? "（同じ数・お金で勝ち）" : "（同じ数・優先札で勝ち）") : ""}`]); };
 function draw() {
   const nm = names(MODE), human = !G.over && !dayEnd && !bidRes && !hand && (MODE === "v" || G.turn === "a"), me = G.turn ? G.p[G.turn] : null;
@@ -731,6 +740,7 @@ function draw() {
       <p style="text-align:center">${nm.a} ${a}勝 ／ ${nm.b} ${b}勝</p>
       <table class="sc"><caption>3つの勝負（◯が勝ち）</caption><thead><tr><th scope="col"></th><th scope="col">${nm.a}</th><th scope="col">${nm.b}</th></tr></thead><tbody>${catRows().map(([k, f]) => `<tr><th scope="row">${k}</th><td>${f("a")}</td><td>${f("b")}</td></tr>`).join("")}</tbody></table>
       <p class="note">残ったお金：${nm.a} ${G.p.a.money}💰・${nm.b} ${G.p.b.money}💰（引き分けた勝負だけに使う）</p>
+      ${(() => { const o = MODE === "v" ? (w === null ? null : Y.other(w)) : "a", k = o && tipFor(G, o); return k ? `<p class="tip" id="tip" data-cat="${k}">💡 次のコツ${MODE === "v" ? `（${nm[o]}へ）` : ""}：${CAT_TIP[k]}</p>` : ""; })()}
       ${newA.length ? `<p>🏅 実績：${newA.map((x) => x[1]).join("・")}</p>` : ""}
       ${near && MODE !== "v" ? `<p class="note">あと少しの実績：${near[1]}（${near[2]}・いま ${near[3](s)}/${near[4]}）</p>` : ""}
       <div class="row"><button class="main" id="again">${MODE === "v" ? "もう一度2人で" : "練習でもう一度"}</button><button id="home2">ホームへ</button></div>
@@ -773,7 +783,7 @@ function draw() {
   else if (G.over && $("h-end")) { $("h-end").focus({ preventScroll: true }); $("h-end").scrollIntoView({ block: "center" }); } // おわったら結果を見せる
 }
 
-window.__yk = { Y, load, save, home, start, resume, act, todayKey, maxMeter, get G() { return G; }, get RUN() { return RUN; }, get MODE() { return MODE; }, ACH };
+window.__yk = { Y, load, save, home, start, resume, act, todayKey, maxMeter, tipFor, CAT_TIP, get G() { return G; }, get RUN() { return RUN; }, get MODE() { return MODE; }, ACH };
 home();
 if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
