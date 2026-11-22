@@ -15,6 +15,7 @@ const printUrl = pathToFileURL(path.join(root, "print.html")).href;
 const liteUrl = pathToFileURL(path.join(root, "print-lite.html")).href;
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 600) });
+const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.locator("#core-coach").count()) { await q.evaluate(() => Core.coach.leave()); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 const Y = createRequire(import.meta.url)(path.join(root, "rules.js"));
 const KEY = "yrk-v1";
 
@@ -257,8 +258,8 @@ try {
   STEP = "遊び方";
   // 遊び方
   { const p = watch(await ctx.newPage()); await p.goto(url); await p.evaluate(() => localStorage.clear()); await p.reload();
-    const shown = await p.evaluate(() => document.getElementById("howto").open);
-    await p.click("#howto-ok"); const saved = await p.evaluate((k) => JSON.parse(localStorage.getItem(k)).tut === true, KEY);
+    const shown = await p.evaluate(() => !document.getElementById("howto").open && !!document.getElementById("core-coach"));
+    await firstClose(p); const saved = await p.evaluate((k) => JSON.parse(localStorage.getItem(k)).tut === true, KEY);
     let esc = true; for (let i = 0; i < 10; i++) { await p.evaluate(() => localStorage.clear()); await p.reload(); await p.keyboard.press("Escape"); await p.reload(); if (await p.evaluate(() => document.getElementById("howto").open)) esc = false; }
     check("遊び方ははじめてだけ出て、「わかった」でも Esc で閉じても次から出ない（10回）", shown && saved && esc);
     await p.close(); }
@@ -523,7 +524,7 @@ try {
   await ctx.close();
 
   try { // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
-    await checkTransfer({ browser, url, game: "yarikuri-shotengai", sample: { "yrk-v1": JSON.stringify({ v: 1, tut: true, lv: "easy", days: { "2026-11-11": { w: 1, s: 80, o: 60, lv: "easy" } }, st: { games: 1, wins: 1 } }) }, check, open: async (p) => { await p.click("#howto-ok", { timeout: 1500 }).catch(() => {}); } });
+    await checkTransfer({ browser, url, game: "yarikuri-shotengai", sample: { "yrk-v1": JSON.stringify({ v: 1, tut: true, lv: "easy", days: { "2026-11-11": { w: 1, s: 80, o: 60, lv: "easy" } }, st: { games: 1, wins: 1 } }) }, check, open: async (p) => { await firstClose(p).catch(() => {}); } });
   } catch (e) { check("引き継ぎコード", false, e.message.split("\n")[0]); }
   // 保存に失敗したら知らせる
   { const ps = watch(await browser.newPage()); await ps.goto(url); await ps.waitForTimeout(200);
