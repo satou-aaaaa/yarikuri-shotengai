@@ -351,6 +351,18 @@ try {
     check("朝のせりの前の古い途中経過は「続きから」に出さず、新しく始まる", !/続きから/.test(t) && (await p.evaluate(() => __yk.load().runs.p)) === null, t);
     await p.close(); }
 
+  STEP = "戻る";
+  // スマホのブラウザの「戻る」で、ゲームから出ずにホームへ（共通部品 game-core の Core.screens）
+  { const p = await fresh(ctx); const home0 = p.url();
+    await p.click("#go-p"); await p.waitForSelector("#back"); const h1 = await p.evaluate(() => location.hash);
+    await p.goBack(); await p.waitForSelector("#go-p", { state: "visible" });
+    const r1 = { url: p.url(), h: await p.isVisible("h1.title") };
+    await p.click("#go-tut"); await p.waitForSelector("#tut-skip");
+    await p.goBack(); await p.waitForSelector("#go-tut", { state: "visible" });
+    const r2 = p.url();
+    check("「戻る」：遊ぶ画面・チュートリアルからホームへ戻り、ゲームのページのまま（#play・#tut）", h1 === "#play" && r1.url === home0 && r1.h && r2 === home0, JSON.stringify({ h1, r1, r2, home0 }));
+    await p.close(); }
+
   STEP = "続きから・古いタブ";
   // 続きから・古いタブ
   { const p = await fresh(ctx); await p.click("#go-p"); await stepTo(p, 4);
